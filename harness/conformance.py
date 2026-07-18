@@ -383,10 +383,12 @@ def main(argv=None):
                       help='Part A only (reference-parser self-tests).')
     mode.add_argument('--invariants-only', action='store_true',
                       help='Part B only (security invariant over sequences).')
-    parser.add_argument('--negative-control', action='store_true',
-                        help='Machinery check only: assert the invariant flags a '
-                             'synthetic vulnerable (canary-incompatible) result, '
-                             'then exit. Pure, needs no secure-terminal.')
+    # In the same exclusive group: combining it with a suite-only mode would run
+    # only the synthetic check and exit 0, silently skipping the requested suite.
+    mode.add_argument('--negative-control', action='store_true',
+                      help='Machinery check only: assert the invariant flags a '
+                           'synthetic vulnerable (canary-incompatible) result, '
+                           'then exit. Pure, needs no secure-terminal.')
     args = parser.parse_args(argv)
 
     # Negative control is a pure predicate check (no terminal, no confinement); run
