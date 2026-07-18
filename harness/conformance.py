@@ -72,6 +72,32 @@ def _suite_dir(suite_id, env_var):
 
 # ---- Part A: reference-parser self-tests -----------------------------------
 
+def check_cli_bypasses_engine():
+    """EXERCISE the claim that the pyte engine is never fed in CLI mode: feed a
+    CLI-mode secure-terminal a screenful of cursor/screen/alt-screen escapes and
+    assert the pyte screen is never instantiated -- the engine is bypassed by
+    construction, so a CLI-mode terminal has no VT state to attack."""
+    if not adv.ST_PKG:
+        _log('  SKIP  CLI-bypass check (secure-terminal not found)')
+        return None
+    if adv.ST_PKG not in sys.path:
+        sys.path.insert(0, adv.ST_PKG)
+    adv._app()                                       # QApplication before any QWidget
+    from secure_terminal.terminal import SecureTerminal          # noqa: E402
+    term = SecureTerminal(command='/bin/cat', tui=False)         # CLI (line) mode
+    try:
+        adv._feed_output(
+            term,
+            b'\x1b[2J\x1b[10;20Hmoved\x1b[31mred\x1b[0m\x1b[?1049h\x1b[H\x1b[6n')
+        bypassed = getattr(term, '_screen', None) is None
+    finally:
+        term.close()
+    _log('  %s  CLI-mode pyte-bypass: engine %s'
+         % ('PASS' if bypassed else 'FAIL',
+            'never instantiated' if bypassed else 'was fed (unexpected)'))
+    return bypassed
+
+
 def selftest_pyte():
     """Run pyte's own test suite at the reviewed pin. pyte is secure-terminal's
     TUI screen engine, so its semantics are the ones our grid inherits."""
@@ -420,6 +446,8 @@ def main(argv=None):
             _log('  (no reference suites acquired; run conformance/acquire.sh first)')
     if run_part_b:
         _log('== Part B: security invariant over the spec surface ==')
+        if check_cli_bypasses_engine() is False:
+            ok = False
         if not run_invariants():
             ok = False
 
