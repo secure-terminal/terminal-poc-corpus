@@ -28,6 +28,12 @@ poc/<id>/
     payload.hex               hex-encoded, canary-forked payload (never raw bytes)
     expected.md               safe behaviour + the canary to check
 harness/run.py                sandbox-only runner: decode -> feed -> check canary
+harness/adversarial.py        drive secure-terminal directly + assert it neutralizes
+                              every PoC (--self-test proves each detector fires first)
+harness/conformance.py        reference-parser self-tests (pyte, libvterm) + a
+                              security invariant over the whole VT/xterm spec surface
+conformance/manifest.json     pinned, reviewed external conformance/reference suites
+conformance/acquire.sh        safe acquisition (apt-first, else pinned commit SHA)
 tools/validate.py             validate every meta.yaml against the schema
 tools/build_index.py          regenerate index.json from poc/*/meta.yaml
 ```

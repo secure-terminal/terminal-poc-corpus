@@ -1,6 +1,30 @@
 # harness
 
-`run.py` is the **sandbox-only** runner. Read [../SAFETY.md](../SAFETY.md) first.
+Three sandbox-only harnesses. Read [../SAFETY.md](../SAFETY.md) first.
+
+- **`run.py`** -- runs the corpus against an arbitrary terminal-under-test via a
+  `--feed-template`, checking the canary marker (documented below).
+- **`adversarial.py`** -- drives secure-terminal directly (headless, offscreen)
+  and asserts it neutralizes every PoC: no reflection to the pty, no display
+  deception, no exfil. Each verification mode splits into an OBSERVABLE (feed the
+  payload, read a plain value) and a DETECTOR (a pure function of that value);
+  `--self-test` first proves every detector fires on a synthetic vulnerable
+  observable, so a "neutralized" verdict is never a false green.
+- **`conformance.py`** -- extends that assurance past the hand-picked PoCs to the
+  whole VT/xterm spec surface. Part A runs the reference parsers `pyte` (the TUI
+  engine) and `libvterm` through their own tests at a reviewed, pinned commit;
+  Part B feeds every sequence the reviewed conformance suites exercise (a curated
+  capability-query baseline plus sequences harvested from libvterm, pyte and
+  esctest2) to secure-terminal and asserts three invariants: zero bytes written
+  back to the pty, pure-ASCII rendered text, and no crash. Acquire the external
+  suites first with `../conformance/acquire.sh --for-tests`; whatever is missing
+  is skipped, and the baseline invariant always runs.
+
+Both `adversarial.py` and `conformance.py` refuse to run outside the sandbox / CI
+(same confinement gate as `run.py`) and lead with the secure-terminal positive
+control.
+
+## run.py
 
 ## What it does
 
