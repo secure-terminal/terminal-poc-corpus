@@ -7,18 +7,18 @@
 
 ## Reproduce the secure-terminal "hostile byte streams" comparison, headless.
 ## For each installed Debian terminal emulator it feeds two payloads and screen-
-## shots the result WITH the window-manager titlebar visible, so the emulator and
-## any title hijack are both legible:
+## shots the DECORATED window (title bar included, no desktop background), so the
+## emulator and any title hijack are both legible:
 ##   Case A (random) : head -c 20000 /dev/urandom  -- genuine random data.
 ##   Case B (crafted): ./hostile-log.sh            -- an OSC-0 title hijack plus a
 ##                     stuck colour and a DEC line-drawing charset shift, none reset.
 ## secure-terminal (its real GUI, from ST_REPO) is captured the same way for a
 ## like-for-like shot. Output PNGs go to ./shots/.
 ##
-## Needs: Xvfb, a window manager that draws titlebars (matchbox-window-manager),
-## xdotool, ImageMagick (import), and whichever emulators you want to test. This
-## installs NOTHING itself (supply-chain hygiene): install the emulators you want
-## first. No root except an optional chmod to undo a hardened exec bit (see NOTE).
+## Needs: Xvfb, a window manager that draws title bars (openbox), xdotool,
+## ImageMagick (import), and whichever emulators you want to test. This installs
+## NOTHING itself (supply-chain hygiene): install the emulators you want first.
+## No root except an optional chmod to undo a hardened exec bit (see NOTE).
 ##
 ## Usage:
 ##   ST_REPO=/path/to/secure-terminal/checkout ./capture.sh
@@ -35,7 +35,6 @@ mkdir --parents -- "${out}"
 "${here}/hostile-log.sh" > "${here}/crafted.bin"
 head --bytes=20000 /dev/urandom > "${here}/random.bin"
 
-W=1000; H=620
 export DISPLAY=":101"
 runtime_dir="$(mktemp --directory)"
 export XDG_RUNTIME_DIR="${runtime_dir}"
@@ -48,10 +47,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-Xvfb "${DISPLAY}" -screen 0 "${W}x${H}x24" >/dev/null 2>&1 &
+## A generous virtual screen so a normal-sized, decorated window has room around
+## it; we screenshot only the window (with its frame), not the whole screen.
+Xvfb "${DISPLAY}" -screen 0 1400x900x24 >/dev/null 2>&1 &
 xvfb_pid="$!"
 sleep 2
-matchbox-window-manager -use_titlebar yes >/dev/null 2>&1 &
+## openbox draws a title bar on every window it manages.
+openbox >/dev/null 2>&1 &
 wm_pid="$!"
 sleep 1
 
@@ -59,20 +61,30 @@ sleep 1
 ## the exec bit from urxvt (historically setuid for utmp). Restore it for the test:
 ##   sudo chmod +x /usr/bin/urxvt
 
-launch() {  ## $1=emulator  $2=command-string
+launch() {  ## $1=emulator  $2=command-string; a normal ~90x28 window where honoured
    local e="$1" cmd="$2"
    case "$e" in
-      xterm)          xterm -fa 'Monospace' -fs 11 -e bash -c "${cmd}" ;;
-      urxvt)          urxvt -fn 'xft:Monospace:size=11' -e bash -c "${cmd}" ;;
-      st)             st -f 'Monospace:size=11' -e bash -c "${cmd}" ;;
+      xterm)          xterm -geometry 90x28 -fa 'Monospace' -fs 11 -e bash -c "${cmd}" ;;
+      urxvt)          urxvt -geometry 90x28 -fn 'xft:Monospace:size=11' -e bash -c "${cmd}" ;;
+      st)             st -g 90x28 -f 'Monospace:size=11' -e bash -c "${cmd}" ;;
       konsole)        konsole --nofork -e bash -c "${cmd}" ;;
-      xfce4-terminal) xfce4-terminal --disable-server -x bash -c "${cmd}" ;;
-      mate-terminal)  mate-terminal --disable-factory -x bash -c "${cmd}" ;;
-      lxterminal)     lxterminal -e "bash -c '${cmd}'" ;;
+      xfce4-terminal) xfce4-terminal --disable-server --geometry 90x28 -x bash -c "${cmd}" ;;
+      mate-terminal)  mate-terminal --disable-factory --geometry 90x28 -x bash -c "${cmd}" ;;
+      lxterminal)     lxterminal --geometry 90x28 -e "bash -c '${cmd}'" ;;
       qterminal)      qterminal -e "bash -c '${cmd}'" ;;
-      alacritty)      alacritty -o 'font.size=11' -e bash -c "${cmd}" ;;
-      kitty)          kitty -o 'font_size=11' bash -c "${cmd}" ;;
+      alacritty)      alacritty -o 'window.dimensions.columns=90' -o 'window.dimensions.lines=28' -o 'font.size=11' -e bash -c "${cmd}" ;;
+      kitty)          kitty -o 'remember_window_size=no' -o 'initial_window_width=760' -o 'initial_window_height=460' -o 'font_size=11' bash -c "${cmd}" ;;
    esac
+}
+
+capture_window() {  ## $1=output-path -- screenshot just the active window + its frame
+   local dest="$1" wid
+   wid="$(xdotool getactivewindow 2>/dev/null || true)"
+   [ -n "${wid}" ] || wid="$(xdotool search --onlyvisible --name '.*' 2>/dev/null | tail -1 || true)"
+   [ -n "${wid}" ] || return
+   ## -frame includes the window-manager title bar + border; only the window is
+   ## captured, so there is no desktop background around it.
+   import -frame -window "${wid}" "${dest}" 2>/dev/null || true
 }
 
 clear_windows() {
@@ -83,16 +95,16 @@ clear_windows() {
 }
 
 shoot() {  ## $1=emulator  $2=case  $3=payload-file
-   local e="$1" case="$2" payload="$3"
+   local e="$1" case="$2" payload="$3" i
    command -v "$e" >/dev/null 2>&1 || { printf 'skip %s (not installed)\n' "$e"; return; }
    launch "$e" "cat '${payload}'; sleep 20" >/dev/null 2>&1 &
-   local epid="$!" i
+   local epid="$!"
    for i in $(seq 1 60); do
       xdotool search --onlyvisible --name '.*' >/dev/null 2>&1 && break
       sleep 0.25
    done
    sleep 3
-   import -window root "${out}/${e}.${case}.png" 2>/dev/null || true
+   capture_window "${out}/${e}.${case}.png"
    clear_windows
    kill "${epid}" 2>/dev/null || true
    sleep 1.5
@@ -116,7 +128,7 @@ if [ -n "${ST_REPO:-}" ] && [ -f "${st_bin}" ]; then
          sleep 0.25
       done
       sleep 3
-      import -window root "${out}/secure-terminal.${case}.png" 2>/dev/null || true
+      capture_window "${out}/secure-terminal.${case}.png"
       clear_windows
       kill "${epid}" 2>/dev/null || true
       sleep 1.5
