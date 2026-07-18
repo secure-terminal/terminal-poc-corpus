@@ -82,10 +82,14 @@ def selftest_pyte():
     env = dict(os.environ)
     # Test the CHECKOUT, not any system-installed pyte.
     env['PYTHONPATH'] = src + os.pathsep + env.get('PYTHONPATH', '')
-    proc = subprocess.run([sys.executable, '-m', 'pytest', '-q',
-                           os.path.join(src, 'tests')],
-                          cwd=src, env=env, stdin=subprocess.DEVNULL,
-                          capture_output=True, text=True, timeout=600, check=False)
+    try:
+        proc = subprocess.run([sys.executable, '-m', 'pytest', '-q',
+                               os.path.join(src, 'tests')],
+                              cwd=src, env=env, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=600, check=False)
+    except subprocess.TimeoutExpired:
+        _log('  FAIL  pyte self-test timed out')     # a hang is a failure, not a hung harness
+        return False
     ok = proc.returncode == 0
     tail = (proc.stdout or proc.stderr).strip().splitlines()[-1:] or ['(no output)']
     _log('  %s  pyte self-test: %s' % ('PASS' if ok else 'FAIL', tail[0]))
@@ -106,10 +110,15 @@ def selftest_libvterm():
     try:
         proc = subprocess.run(['make', 'test'], cwd=src, stdin=subprocess.DEVNULL,
                               capture_output=True, text=True, timeout=600, check=False)
-    except (OSError, subprocess.SubprocessError) as exc:
+    except subprocess.TimeoutExpired:
+        _log('  FAIL  libvterm self-test timed out')  # a hang is a failure, not a skip
+        return False
+    except OSError as exc:
         _log('  SKIP  libvterm self-test (build error: %s)' % exc)
         return None
-    if proc.returncode != 0 and re.search(r'(command not found|No such file|cc:|Error 127)',
+    # SKIP only on DEFINITIVE missing-toolchain evidence; do not let a broad match
+    # ("No such file", "cc:") mask a genuine test failure as a skip.
+    if proc.returncode != 0 and re.search(r'(command not found|Error 127)',
                                           proc.stdout + proc.stderr):
         _log('  SKIP  libvterm self-test (toolchain unavailable)')
         return None
@@ -339,24 +348,35 @@ def main(argv=None):
         description='Run reviewed conformance/reference suites against '
                     'secure-terminal: reference-parser self-tests + a security '
                     'invariant over the spec surface.')
-    parser.add_argument('--self-tests-only', action='store_true',
-                        help='Part A only (reference-parser self-tests).')
-    parser.add_argument('--invariants-only', action='store_true',
-                        help='Part B only (security invariant over sequences).')
+    # Mutually exclusive: supplying both would disable BOTH parts and exit 0 -- a
+    # false green. argparse rejects the combination for us.
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--self-tests-only', action='store_true',
+                      help='Part A only (reference-parser self-tests).')
+    mode.add_argument('--invariants-only', action='store_true',
+                      help='Part B only (security invariant over sequences).')
     args = parser.parse_args(argv)
 
-    adv.require_confined()
-    adv.positive_control()          # fail loud if the machinery is broken
+    run_part_a = not args.invariants_only
+    run_part_b = not args.self_tests_only
+
+    # Only Part B feeds live escape sequences to secure-terminal, so only it needs
+    # the confinement gate and the secure-terminal positive control. Part A runs
+    # only the external parsers' own tests (no terminal, no secure-terminal), so a
+    # self-tests-only run must not be blocked by either.
+    if run_part_b:
+        adv.require_confined()
+        adv.positive_control()          # fail loud if the machinery is broken
 
     ok = True
-    if not args.invariants_only:
+    if run_part_a:
         _log('== Part A: reference-parser self-tests ==')
         results = [selftest_pyte(), selftest_libvterm()]
         if any(r is False for r in results):
             ok = False
         if all(r is None for r in results):
             _log('  (no reference suites acquired; run conformance/acquire.sh first)')
-    if not args.self_tests_only:
+    if run_part_b:
         _log('== Part B: security invariant over the spec surface ==')
         if not run_invariants():
             ok = False
