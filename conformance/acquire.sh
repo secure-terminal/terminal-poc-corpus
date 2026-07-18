@@ -21,8 +21,19 @@ here="$(cd -- "$(dirname -- "$0")" && pwd)"
 manifest="${here}/manifest.json"
 vendor="${here}/vendor"
 list_only="false"
+for_tests="false"
 
-[ "${1:-}" != "--list" ] || list_only="true"
+case "${1:-}" in
+   --list)      list_only="true" ;;
+   ## Acquire ONLY the suites the conformance harness runs (pyte, libvterm,
+   ## esctest2), cloning their source even for the apt+git ones so their test
+   ## trees are present. Skips the heavy corpora (ghostty, vte, ...) not needed
+   ## for conformance.py.
+   --for-tests) for_tests="true" ;;
+esac
+
+## Suites conformance.py needs the source tree of (their own tests + sequences).
+for_tests_ids=" pyte libvterm esctest2 "
 
 # Emit "id|method|apt_package|git_url|pin" for each suite, parsed with python3
 # (JSON, no jq dependency).
@@ -61,6 +72,14 @@ acquire_git() {
 fail=0
 while IFS='|' read -r id method apt_package git_url pin; do
    [ -n "${id}" ] || continue
+   ## --for-tests: clone only the conformance-harness suites, by git, whatever
+   ## their manifest method (pyte/libvterm are apt+git: we want their test tree).
+   if [ "${for_tests}" = "true" ]; then
+      case "${for_tests_ids}" in
+         *" ${id} "*) acquire_git "${id}" "${git_url}" "${pin}" || fail=1 ;;
+      esac
+      continue
+   fi
    case "${method}" in
       apt)
          printf 'apt  %s: install the signed-repo package: apt install %s\n' \

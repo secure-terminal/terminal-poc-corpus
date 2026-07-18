@@ -28,7 +28,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            python3-pyqt6 python3-pyte python3-yaml python3-jsonschema
+            python3-pyqt6 python3-pyte python3-yaml python3-jsonschema \
+            python3-pytest build-essential libtool-bin perl pkg-config
       - name: Validate the corpus (schema + sanitization lint)
         run: python3 tools/validate.py
       - name: Positive control + adversarial corpus test
@@ -39,3 +40,10 @@ jobs:
           python3 harness/run.py --self-test
           python3 harness/adversarial.py --self-test
           python3 harness/adversarial.py
+      - name: Acquire reviewed conformance suites (pinned SHAs) + run conformance
+        env:
+          SECURE_TERMINAL_REPO: ${{ github.workspace }}/_secure-terminal
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          ./conformance/acquire.sh --for-tests
+          python3 harness/conformance.py
