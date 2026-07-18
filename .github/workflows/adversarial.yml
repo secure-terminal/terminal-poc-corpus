@@ -1,0 +1,40 @@
+# Adversarial corpus test against secure-terminal, GitHub CI only (isolated ephemeral
+# runners) -- the harness refuses to decode live payloads on a plain host. It leads with
+# the --test-canary positive control (fail loud if the machinery is broken) and asserts
+# secure-terminal never reflects any corpus PoC back to the pty.
+name: adversarial-corpus
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adversarial:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the corpus
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4
+      - name: Check out secure-terminal (public)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4
+        with:
+          repository: secure-terminal/secure-terminal
+          path: _secure-terminal
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-pyqt6 python3-pyte python3-yaml python3-jsonschema
+      - name: Validate the corpus (schema + sanitization lint)
+        run: python3 tools/validate.py
+      - name: Positive control + adversarial corpus test
+        env:
+          SECURE_TERMINAL_REPO: ${{ github.workspace }}/_secure-terminal
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python3 harness/run.py --self-test
+          python3 harness/adversarial.py
