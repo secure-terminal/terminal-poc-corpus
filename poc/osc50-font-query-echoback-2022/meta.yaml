@@ -1,0 +1,39 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: osc50-font-query-echoback-2022
+title: "OSC 50 font set-then-query echoback (command injection)"
+class: osc50-font-query-echoback
+cve:
+  - CVE-2022-45063   # xterm < 375
+  - CVE-2023-39726   # mintty < 3.6.5
+affected:
+  - product: xterm
+    versions_fixed: "375"
+    tested: false
+  - product: mintty
+    versions_fixed: "3.6.5"
+    tested: false
+author: "David Leadbeater"
+source_url: "https://dgl.cx/2023/09/ansi-terminal-security"
+archive_url: "http://web.archive.org/web/20260617084902/https://dgl.cx/2023/09/ansi-terminal-security"
+date: "2022-11"
+severity: rce
+mechanism: osc50-font-set-then-query
+references:
+  - "https://nvd.nist.gov/vuln/detail/CVE-2022-45063"
+  - "https://nvd.nist.gov/vuln/detail/CVE-2023-39726"
+payload_encoding: hex
+expected_effect: >-
+  Sets the terminal font via OSC 50 to an attacker-chosen string, then queries the
+  font (OSC 50 ; ?). A vulnerable terminal reports the font name back into the shell's
+  input stream; at a shell prompt (notably with xterm + zsh vi-mode list-expand,
+  CVE-2022-45063) the reflected value plus a newline runs as a command.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream PoC sets the font to an arbitrary attacker command before querying it.
+  Here the font is set to a SAFE canary command that only writes the canary marker
+  file, so a fired payload cannot harm the tester. See
+  dgl.cx/2023/09/ansi-terminal-security for the unmodified technique.
+notes: >-
+  A set-then-report echoback, the same shape as the 2003 title-report class and the
+  DECRQSS reflection, applied to the OSC 50 font query.

