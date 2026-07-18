@@ -5,23 +5,18 @@
 
 """Adversarial corpus test against secure-terminal.
 
-For every corpus PoC, fire the decoded payload at secure-terminal and check -- per the
-PoC's `verification` mode -- whether the class's standardized canary (the token
-POC-CORPUS-CANARY-FIRED) manifests. secure-terminal must neutralize every class:
+Each verification mode is an OBSERVABLE + a DETECTOR. The observable feeds a payload
+to secure-terminal and reads a plain value (its rendered text, the clipboard, the
+bytes written back to the pty, the notifications emitted, the anchors created, the
+processing time). The detector is a PURE function of that value that returns True on
+a hit. secure-terminal must neutralize every class, so the detector on its real
+observable returns False for every PoC.
 
-  * canary-command   -- a reflection/echoback would write the reply back to the pty
-                        (injecting the canary command); any write-back is a hit.
-  * display-deception -- a hit renders the clean token (bidi reorder) or lets a raw
-                        non-ASCII code point (homoglyph / bidi control) survive; checked
-                        via secure-terminal's default (strip) sanitizer.
-  * clipboard-exfil  -- a hit sets the system clipboard to the canary token (OSC 52
-                        write is off by default -> the clipboard must stay unchanged).
-  * hyperlink-mismatch -- a hit creates a hyperlink whose target carries the token
-                        behind different visible text (OSC 8 off by default -> no anchor).
-
-It leads with an always-firing POSITIVE CONTROL (`secure-terminal --test-canary`): if
-that does not fire, the machinery is broken and no "neutralized" verdict is trusted, so
-the run fails loud rather than reporting a false all-clear.
+Crucially, `--self-test` runs each detector on a synthetic VULNERABLE observable that
+it MUST fire on -- proving the canary for that class actually triggers and the check
+is real, not a tautology. The run also leads with an always-firing positive control
+(`secure-terminal --test-canary`); if it does not fire the machinery is broken and no
+"neutralized" verdict is trusted.
 
 CONFINED: this decodes live terminal bytes, so it runs in the sandbox or in GitHub CI
 (isolated ephemeral runners) only, unless explicitly overridden. See ../SAFETY.md.
@@ -82,7 +77,7 @@ ST_BIN, ST_PKG = _st_paths()
 
 def positive_control():
     """Always-firing control: `secure-terminal --test-canary` must fire, proving the
-    machinery works before any 'no reflection' verdict is trusted."""
+    machinery works before any 'neutralized' verdict is trusted."""
     if not ST_BIN:
         die('secure-terminal not found (set SECURE_TERMINAL_REPO)', 77)
     env = dict(os.environ)
@@ -92,7 +87,7 @@ def positive_control():
                          timeout=30, check=False)
     if ST_CANARY_TOKEN not in out.stdout:
         die('POSITIVE CONTROL FAILED: secure-terminal --test-canary did not fire; '
-            'the machinery is broken -- refusing to trust any "no reflection" verdict.', 4)
+            'the machinery is broken -- refusing to trust any "neutralized" verdict.', 4)
 
 
 def _decode(payload_hex):
@@ -154,71 +149,79 @@ def _new_term(enable_osc):
     return term
 
 
-def _hit_canary_command(payload):
-    """canary-command: a reflection/echoback would write the reply back to the pty
-    (injecting the canary command). Any write-back is a hit. Features ON to maximise
-    the chance a vulnerable terminal answers."""
+# ---- observables: feed the payload to secure-terminal, return a plain value ----
+
+def _obs_writeback(payload):
+    """Bytes secure-terminal writes back to the pty (reflection / echoback), with every
+    reach-out OSC feature ON to maximise the chance a vulnerable terminal answers."""
     term = _new_term(enable_osc=True)
     sent = []
-    term._write = sent.append          # pylint: disable=protected-access
+    term._write = sent.append              # pylint: disable=protected-access
     _feed_output(term, payload)
     term.close()
-    return bool(sent)
+    return sent
 
 
-def _hit_display_deception(payload):
-    """display-deception: run the payload through secure-terminal's default sanitizer
-    (strip mode -- its safe-by-construction default). A hit means the deception
-    survived: the clean canary token appears (bidi reordered it into view), OR any raw
-    non-ASCII code point from the payload passed through unneutralized (homoglyph /
-    bidi control). strip mode replaces every non-ASCII byte and interprets no escapes,
-    so a secure terminal lets neither survive."""
+def _obs_render_strip(payload):
+    """secure-terminal's line-mode rendered text (strip mode, its safe default)."""
     if ST_PKG and ST_PKG not in sys.path:
         sys.path.insert(0, ST_PKG)
     from secure_terminal.sanitize import render_output            # noqa: E402
-    rendered = render_output(payload.decode('utf-8', 'replace'), 'strip')
-    if POC_TOKEN in rendered:
-        return True
-    return any(ord(ch) > 127 for ch in rendered)
+    return render_output(payload.decode('utf-8', 'replace'), 'strip')
 
 
-def _hit_clipboard_exfil(payload):
-    """clipboard-exfil: a hit sets the system clipboard to the canary token. OSC 52
-    write is off by default, so secure-terminal must leave the clipboard unchanged."""
-    from PyQt6.QtGui import QGuiApplication                      # noqa: E402
+def _obs_clipboard(payload):
+    """The system clipboard after feeding the payload (OSC 52 write off by default)."""
+    from PyQt6.QtGui import QGuiApplication                       # noqa: E402
     board = QGuiApplication.clipboard()
     board.setText('CLIP-SENTINEL-UNCHANGED')
-    term = _new_term(enable_osc=False)     # osc_clipboard OFF (default) -> gated
+    term = _new_term(enable_osc=False)
     _feed_output(term, payload)
     result = board.text()
     term.close()
-    return result == POC_TOKEN
+    return result
 
 
-def _hit_hyperlink_mismatch(payload):
-    """hyperlink-mismatch: a hit creates a hyperlink whose target carries the canary
-    token behind different visible text. OSC 8 is off by default, so secure-terminal
-    must create no such anchor."""
-    term = _new_term(enable_osc=False)     # osc_hyperlink OFF (default) -> gated
+def _obs_anchors(payload):
+    """Hyperlink anchor targets in the rendered document (OSC 8 off by default)."""
+    term = _new_term(enable_osc=False)
     _feed_output(term, payload)
-    hit = False
+    hrefs = []
     doc = term.document()
     block = doc.begin()
     while block.isValid():
         frag_it = block.begin()
         while not frag_it.atEnd():
-            if POC_TOKEN in frag_it.fragment().charFormat().anchorHref():
-                hit = True
+            hrefs.append(frag_it.fragment().charFormat().anchorHref())
             frag_it += 1
         block = block.next()
     term.close()
-    return hit
+    return hrefs
 
 
-def _hit_denial_of_service(payload):
-    """denial-of-service: a flood / huge-repeat payload tries to hang or exhaust the
-    terminal. secure-terminal interprets no escapes, so it is stripped to inert text in
-    bounded time. A hit = it hangs (past the bound) or crashes."""
+def _obs_notifications(payload):
+    """Desktop-notification texts emitted while feeding (osc_notify off by default)."""
+    term = _new_term(enable_osc=False)
+    fired = []
+    try:
+        term.notified.connect(fired.append)
+    except Exception:                      # pylint: disable=broad-except
+        pass                               # no such signal -> none can fire
+    _feed_output(term, payload)
+    term.close()
+    return fired
+
+
+def _obs_paste(payload):
+    """secure-terminal's paste-sanitized text (the bracketed-paste guard path)."""
+    if ST_PKG and ST_PKG not in sys.path:
+        sys.path.insert(0, ST_PKG)
+    from secure_terminal.sanitize import sanitize_paste           # noqa: E402
+    return sanitize_paste(payload.decode('utf-8', 'replace'))
+
+
+def _obs_timing(payload):
+    """(elapsed_seconds, crashed) processing the payload -- for DoS / decoder overflow."""
     if ST_PKG and ST_PKG not in sys.path:
         sys.path.insert(0, ST_PKG)
     from secure_terminal.sanitize import render_output            # noqa: E402
@@ -226,96 +229,120 @@ def _hit_denial_of_service(payload):
     start = _time.monotonic()
     try:
         render_output(payload.decode('utf-8', 'replace'), 'strip')
-    except Exception:              # pylint: disable=broad-except -- a crash IS a hit
-        return True
-    return (_time.monotonic() - start) > 2.0
+    except Exception:                      # pylint: disable=broad-except -- a crash is a hit
+        return (0.0, True)
+    return (_time.monotonic() - start, False)
 
 
-def _hit_decoder_crash(payload):
-    """decoder-crash: a Sixel / ReGIS decoder overflow. secure-terminal never runs a
-    decoder (it strips the sequence), so it neither crashes nor hangs -- same property
-    as DoS."""
-    return _hit_denial_of_service(payload)
+# ---- detectors: pure functions of an observable (True == the class fired) ----
+
+def _det_writeback(sent):
+    return bool(sent)
 
 
-def _hit_paste_bypass(payload):
-    """paste-bypass: an escape that breaks the bracketed-paste guard so injected content
-    reaches the shell. secure-terminal's paste sanitizer strips escapes. A hit = an ESC
-    / C1 control (the guard-breaking byte) survives the paste sanitizer."""
-    if ST_PKG and ST_PKG not in sys.path:
-        sys.path.insert(0, ST_PKG)
-    from secure_terminal.sanitize import sanitize_paste           # noqa: E402
-    cleaned = sanitize_paste(payload.decode('utf-8', 'replace'))
-    return '\x1b' in cleaned or '\x9b' in cleaned
+def _det_deception(text):
+    # a hit: the clean token was reordered into view (bidi), or a raw non-ASCII code
+    # point (homoglyph / bidi control) survived.
+    return POC_TOKEN in text or any(ord(ch) > 127 for ch in text)
 
 
-def _hit_reflection(payload):
-    """reflection: the terminal answers a query (DSR, device attributes, ENQ
-    answerback, colour query) by writing the reply back to the pty -- the primitive
-    behind the echoback class, and on a vulnerable terminal an injection point. Any
-    write-back is a hit; secure-terminal answers none."""
-    return _hit_canary_command(payload)
+def _det_charset(text):
+    # a hit: charset-shift line-drawing glyphs (non-ASCII) survived.
+    return any(ord(ch) > 127 for ch in text)
 
 
-def _hit_notification_spoof(payload):
-    """notification-spoof: an OSC 9 / 99 desktop-notification carries attacker text. A
-    hit = a notification bearing the canary token is emitted. osc_notify is off by
-    default, so secure-terminal emits none."""
-    term = _new_term(enable_osc=False)     # osc_notify OFF (default)
-    fired = []
-    try:
-        term.notified.connect(fired.append)
-    except Exception:                  # pylint: disable=broad-except
-        pass                           # no such signal -> cannot fire
-    _feed_output(term, payload)
-    term.close()
-    return any(POC_TOKEN in str(text) for text in fired)
+def _det_cursor(text):
+    # a hit: the token was overwritten / hidden (no longer present).
+    return POC_TOKEN not in text
 
 
-def _hit_charset_deception(payload):
-    """charset-deception: a charset shift (e.g. ESC ( 0 DEC special graphics) makes
-    plain ASCII render as line-drawing glyphs, disguising the text. A hit = the render
-    contains such non-ASCII glyphs. secure-terminal's strip mode drops the shift and
-    keeps the text ASCII, so no non-ASCII appears."""
-    if ST_PKG and ST_PKG not in sys.path:
-        sys.path.insert(0, ST_PKG)
-    from secure_terminal.sanitize import render_output            # noqa: E402
-    rendered = render_output(payload.decode('utf-8', 'replace'), 'strip')
-    return any(ord(ch) > 127 for ch in rendered)
+def _det_clipboard(clip):
+    return clip == POC_TOKEN
 
 
-def _hit_cursor_spoof(payload):
-    """cursor-spoof: cursor addressing (up + erase + overwrite) hides earlier output in
-    line mode. The payload writes the canary token, then repositions and overwrites it;
-    a hit = the token was HIDDEN (no longer present). secure-terminal's strip mode drops
-    the cursor controls, so the token survives -- nothing is overwritten."""
-    if ST_PKG and ST_PKG not in sys.path:
-        sys.path.insert(0, ST_PKG)
-    from secure_terminal.sanitize import render_output            # noqa: E402
-    rendered = render_output(payload.decode('utf-8', 'replace'), 'strip')
-    return POC_TOKEN not in rendered
+def _det_anchors(hrefs):
+    return any(POC_TOKEN in (href or '') for href in hrefs)
 
 
-_CHECKS = {
-    'canary-command': _hit_canary_command,
-    'display-deception': _hit_display_deception,
-    'clipboard-exfil': _hit_clipboard_exfil,
-    'hyperlink-mismatch': _hit_hyperlink_mismatch,
-    'denial-of-service': _hit_denial_of_service,
-    'decoder-crash': _hit_decoder_crash,
-    'paste-bypass': _hit_paste_bypass,
-    'reflection': _hit_reflection,
-    'notification-spoof': _hit_notification_spoof,
-    'charset-deception': _hit_charset_deception,
-    'cursor-spoof': _hit_cursor_spoof,
+def _det_notify(texts):
+    return any(POC_TOKEN in str(text) for text in texts)
+
+
+def _det_paste(text):
+    return '\x1b' in text or '\x9b' in text
+
+
+def _det_timing(elapsed_crashed):
+    elapsed, crashed = elapsed_crashed
+    return crashed or elapsed > 2.0
+
+
+# verification mode -> (observable of secure-terminal, detector)
+_MODES = {
+    'canary-command': (_obs_writeback, _det_writeback),
+    'reflection': (_obs_writeback, _det_writeback),
+    'display-deception': (_obs_render_strip, _det_deception),
+    'charset-deception': (_obs_render_strip, _det_charset),
+    'cursor-spoof': (_obs_render_strip, _det_cursor),
+    'clipboard-exfil': (_obs_clipboard, _det_clipboard),
+    'hyperlink-mismatch': (_obs_anchors, _det_anchors),
+    'notification-spoof': (_obs_notifications, _det_notify),
+    'denial-of-service': (_obs_timing, _det_timing),
+    'decoder-crash': (_obs_timing, _det_timing),
+    'paste-bypass': (_obs_paste, _det_paste),
 }
 
 
-def main():
+def _vulnerable_observable(mode):
+    """A synthetic observable a VULNERABLE terminal would produce for this mode -- the
+    per-class positive control. The mode's detector MUST fire on it, proving the canary
+    triggers and the check is real (not a tautology)."""
+    return {
+        'canary-command': [b'\x1b]52;c;reflected\x07'],   # the terminal wrote a reply back
+        'reflection': [b'\x1b[24;80R'],                   # a DSR reply written back
+        'display-deception': POC_TOKEN[::-1] + chr(0x202e),  # RLO + reversed token
+        'charset-deception': 'POC' + chr(0x2500) + chr(0x2502),  # line-drawing glyphs
+        'cursor-spoof': 'FAKE-BENIGN-LINE',               # the token was overwritten
+        'clipboard-exfil': POC_TOKEN,                     # clipboard set to the token
+        'hyperlink-mismatch': ['https://attacker.example/' + POC_TOKEN],  # anchor -> token
+        'notification-spoof': [POC_TOKEN],                # a notification bearing the token
+        'denial-of-service': (3.0, False),                # took too long
+        'decoder-crash': (0.0, True),                     # the decoder crashed
+        'paste-bypass': 'x\x1b[201~' + POC_TOKEN,         # the guard-breaking ESC survived
+    }[mode]
+
+
+def self_test():
+    """Prove every class's canary actually TRIGGERS: run each mode's detector on a
+    synthetic VULNERABLE observable and confirm it fires. If any does not fire, that
+    detector is broken (a tautology) and no 'neutralized' verdict for it is trusted."""
+    broken = []
+    for mode in sorted(_MODES):
+        detector = _MODES[mode][1]
+        fired = bool(detector(_vulnerable_observable(mode)))
+        print('%-9s %-20s canary %s' % (
+            'TRIGGERS' if fired else 'DEAD', mode,
+            'fires on a vulnerable case' if fired else 'DID NOT FIRE (tautology!)'))
+        if not fired:
+            broken.append(mode)
+    print('-- %d/%d class canaries trigger' % (len(_MODES) - len(broken), len(_MODES)))
+    return 1 if broken else 0
+
+
+def main(argv=None):
+    import argparse                                               # noqa: E402
+    parser = argparse.ArgumentParser(description=__doc__.split('\n', 1)[0])
+    parser.add_argument('--self-test', action='store_true',
+                        help='prove every class canary fires on a vulnerable case, then exit')
+    args = parser.parse_args(argv)
+
     require_confined()
+    if args.self_test:
+        return self_test()
+
     positive_control()
     print('positive control OK: secure-terminal --test-canary fires')
-    import yaml                                                  # noqa: E402
+    import yaml                                                   # noqa: E402
     pocs = sorted(glob.glob(os.path.join(ROOT, 'poc', '*')))
     fired = 0
     tested = 0
@@ -327,12 +354,13 @@ def main():
         poc_id = os.path.basename(poc_dir)
         with open(meta_path, encoding='utf-8') as handle:
             mode = yaml.safe_load(handle).get('verification', 'canary-command')
-        check = _CHECKS.get(mode)
-        if check is None:
+        pair = _MODES.get(mode)
+        if pair is None:
             print('SKIP       %-41s unknown verification mode %r' % (poc_id, mode))
             continue
         tested += 1
-        if check(_decode(payload_hex)):
+        observe, detector = pair
+        if detector(observe(_decode(payload_hex))):
             fired += 1
             print('VULNERABLE %-41s [%s] the canary FIRED!' % (poc_id, mode))
         else:
