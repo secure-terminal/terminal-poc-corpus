@@ -1,0 +1,31 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: bracketed-paste-bypass-2021
+title: "Pasted content that embeds the end-bracketed-paste sequence (CSI 201 ~"
+class: bracketed-paste-bypass
+cve:
+  - CVE-2021-31701
+  - CVE-2021-37326
+  - CVE-2021-40147
+affected:
+  - product: "mintty"
+    tested: false
+  - product: "Xshell"
+    tested: false
+  - product: "ZOC"
+    tested: false
+author: "Eviatar Gerzi (CyberArk)"
+source_url: "https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters"
+archive_url: "http://web.archive.org/web/20260511163824/https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters"
+date: "2021-03"
+severity: injection
+mechanism: end-bracketed-paste-early
+verification: paste-bypass
+payload_encoding: hex
+expected_effect: >-
+  Pasted content that embeds the end-bracketed-paste sequence (CSI 201 ~) tricks the terminal into ending paste mode early, so the rest of the paste is treated as typed input and runs. A secure terminal sanitizes paste to ASCII and strips the escape, so the guard cannot be broken.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream breaks the paste guard to run an arbitrary command; here the injected content is the safe canary command.
+notes: >-
+  Tests the PASTE path (sanitize_paste), not program output. A hit = an ESC survives the paste sanitizer.

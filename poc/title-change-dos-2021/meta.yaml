@@ -1,0 +1,35 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: title-change-dos-2021
+title: "A flood of rapid window-title changes (OSC 0) exhausts CPU/memory and "
+class: title-change-dos
+cve:
+  - CVE-2021-28847
+  - CVE-2021-28848
+  - CVE-2021-32198
+  - CVE-2021-33500
+  - CVE-2021-42095
+affected:
+  - product: "MobaXterm"
+    tested: false
+  - product: "mintty"
+    tested: false
+  - product: "ZOC"
+    tested: false
+  - product: "PuTTY"
+    tested: false
+  - product: "Xshell"
+    tested: false
+author: "Eviatar Gerzi (CyberArk)"
+source_url: "https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters"
+archive_url: "http://web.archive.org/web/20260511163824/https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters"
+date: "2021-03"
+severity: dos
+mechanism: title-change-flood
+verification: denial-of-service
+payload_encoding: hex
+expected_effect: >-
+  A flood of rapid window-title changes (OSC 0) exhausts CPU/memory and freezes several terminals (CyberArk 2021). A secure terminal that interprets no OSC processes it as inert stripped text in bounded time.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  Resource-exhaustion class; verified by bounded processing time, not a canary command.

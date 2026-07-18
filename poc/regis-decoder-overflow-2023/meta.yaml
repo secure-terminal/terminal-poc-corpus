@@ -1,0 +1,23 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: regis-decoder-overflow-2023
+title: "A ReGIS char-set-name reporting sequence overruns a buffer in xterm (t"
+class: regis-decoder
+cve:
+  - CVE-2023-40359
+affected:
+  - product: "xterm"
+    tested: false
+author: "(xterm ReGIS reporting overflow)"
+source_url: "https://nvd.nist.gov/vuln/detail/CVE-2023-40359"
+archive_url: "TODO"
+date: "2023-08"
+severity: dos
+mechanism: regis-charset-name-overflow
+verification: decoder-crash
+payload_encoding: hex
+expected_effect: >-
+  A ReGIS char-set-name reporting sequence overruns a buffer in xterm (triggerable even via a crafted process name in a listing). A secure terminal never runs a ReGIS decoder (it strips the DCS).
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  Representative ReGIS payload; the exact overflow is verified per-terminal in the sandbox.

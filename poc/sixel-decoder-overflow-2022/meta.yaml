@@ -1,0 +1,24 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: sixel-decoder-overflow-2022
+title: "A Sixel image with a repeat operator that overruns a bounds check in x"
+class: sixel-decoder
+cve:
+  - CVE-2022-24130
+affected:
+  - product: "xterm"
+    versions_fixed: "370"
+    tested: false
+author: "David Leadbeater"
+source_url: "https://dgl.cx/2023/09/ansi-terminal-security"
+archive_url: "http://web.archive.org/web/20260617084902/https://dgl.cx/2023/09/ansi-terminal-security"
+date: "2022-01"
+severity: dos
+mechanism: sixel-repeat-overflow
+verification: decoder-crash
+payload_encoding: hex
+expected_effect: >-
+  A Sixel image with a repeat operator that overruns a bounds check in xterm <= 370 set_sixel, corrupting memory. A secure terminal never runs a Sixel decoder (it strips the DCS), so no decoder executes.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  Representative Sixel-repeat payload; the exact overflow is verified per-terminal in the sandbox.

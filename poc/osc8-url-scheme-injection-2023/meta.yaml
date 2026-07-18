@@ -1,0 +1,27 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: osc8-url-scheme-injection-2023
+title: "An OSC 8 hyperlink whose target uses a dangerous URL scheme (e"
+class: osc8-url-scheme-arg-injection
+cve:
+  - CVE-2023-46321
+  - CVE-2023-46322
+affected:
+  - product: "iTerm2"
+    versions_fixed: "3.5.0"
+    tested: false
+  - product: "Hyper"
+    tested: false
+author: "Vin01"
+source_url: "https://vin01.github.io/piptagole/escape-sequences/iterm2/hyper/url-handlers/code-execution/2024/05/21/arbitrary-url-schemes-terminal-emulators.html"
+archive_url: "TODO"
+date: "2024-05"
+severity: rce
+mechanism: osc8-url-scheme-arg-injection
+verification: hyperlink-mismatch
+payload_encoding: hex
+expected_effect: >-
+  An OSC 8 hyperlink whose target uses a dangerous URL scheme (e.g. ssh:// with an -oProxyCommand argument). Clicking it passes attacker arguments to the scheme handler, reaching code execution -- while the visible text looks benign.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  A command-injection variant of osc8-hyperlink-phishing via the URL-scheme handler.

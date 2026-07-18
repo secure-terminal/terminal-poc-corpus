@@ -1,0 +1,26 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: osc-code-injection-urxvt-2022
+title: "rxvt-unicode < 9"
+class: osc-code-injection
+cve:
+  - CVE-2022-4170
+affected:
+  - product: "rxvt-unicode"
+    versions_fixed: "9.30"
+    tested: false
+author: "(rxvt-unicode OSC 705 background eval)"
+source_url: "https://nvd.nist.gov/vuln/detail/CVE-2022-4170"
+archive_url: "TODO"
+date: "2022-11"
+severity: rce
+mechanism: osc705-eval
+verification: canary-command
+payload_encoding: hex
+expected_effect: >-
+  rxvt-unicode < 9.30 evaluates an OSC 705 (background) operating-system-command, executing injected code directly from program output -- no reflection needed.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream injects arbitrary code via OSC 705; here the payload is the safe canary command.
+notes: >-
+  Distinct from reflection: the OSC is executed directly by the terminal extension.

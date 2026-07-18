@@ -1,0 +1,27 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: iterm2-title-report-tmux-2024
+title: "The 2003 title-report echoback resurfaced in iTerm2 < 3"
+class: title-report-echoback
+cve:
+  - CVE-2024-38395
+  - CVE-2024-38396
+affected:
+  - product: "iTerm2"
+    versions_fixed: "3.5.2"
+    tested: false
+author: "Vin01"
+source_url: "https://vin01.github.io/piptagole/escape-sequences/iterm2/rce/2024/06/16/iterm2-rce-window-title-tmux-integration.html"
+archive_url: "TODO"
+date: "2024-06"
+severity: rce
+mechanism: title-set-then-report
+verification: canary-command
+payload_encoding: hex
+expected_effect: >-
+  The 2003 title-report echoback resurfaced in iTerm2 < 3.5.2: an unfiltered window-title report, combined with default tmux integration, reflects the attacker-set title into the shell and runs it (no Enter needed).
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream sets the title to an arbitrary command; here it is the safe canary command.
+notes: >-
+  Modern resurgence of title-report-echoback-2003. Vin01 PoC repo: github.com/vin01/poc-cve-2024-38396.

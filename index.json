@@ -1,7 +1,24 @@
 {
   "schema": "schema/poc.schema.json",
-  "count": 7,
+  "count": 16,
   "pocs": [
+    {
+      "id": "bracketed-paste-bypass-2021",
+      "title": "Pasted content that embeds the end-bracketed-paste sequence (CSI 201 ~",
+      "class": "bracketed-paste-bypass",
+      "cve": [
+        "CVE-2021-31701",
+        "CVE-2021-37326",
+        "CVE-2021-40147"
+      ],
+      "author": "Eviatar Gerzi (CyberArk)",
+      "source_url": "https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters",
+      "archive_url": "http://web.archive.org/web/20260511163824/https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters",
+      "date": "2021-03",
+      "severity": "injection",
+      "mechanism": "end-bracketed-paste-early",
+      "modified": true
+    },
     {
       "id": "decrqss-reflection-2023",
       "title": "DECRQSS status-request reflection (near-arbitrary input injection)",
@@ -33,6 +50,37 @@
       "severity": "spoof",
       "mechanism": "homoglyph-substitution",
       "modified": false
+    },
+    {
+      "id": "iterm2-title-report-tmux-2024",
+      "title": "The 2003 title-report echoback resurfaced in iTerm2 < 3",
+      "class": "title-report-echoback",
+      "cve": [
+        "CVE-2024-38395",
+        "CVE-2024-38396"
+      ],
+      "author": "Vin01",
+      "source_url": "https://vin01.github.io/piptagole/escape-sequences/iterm2/rce/2024/06/16/iterm2-rce-window-title-tmux-integration.html",
+      "archive_url": "TODO",
+      "date": "2024-06",
+      "severity": "rce",
+      "mechanism": "title-set-then-report",
+      "modified": true
+    },
+    {
+      "id": "osc-code-injection-urxvt-2022",
+      "title": "rxvt-unicode < 9",
+      "class": "osc-code-injection",
+      "cve": [
+        "CVE-2022-4170"
+      ],
+      "author": "(rxvt-unicode OSC 705 background eval)",
+      "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2022-4170",
+      "archive_url": "TODO",
+      "date": "2022-11",
+      "severity": "rce",
+      "mechanism": "osc705-eval",
+      "modified": true
     },
     {
       "id": "osc50-font-query-echoback-2022",
@@ -77,6 +125,87 @@
       "modified": false
     },
     {
+      "id": "osc8-url-scheme-injection-2023",
+      "title": "An OSC 8 hyperlink whose target uses a dangerous URL scheme (e",
+      "class": "osc8-url-scheme-arg-injection",
+      "cve": [
+        "CVE-2023-46321",
+        "CVE-2023-46322"
+      ],
+      "author": "Vin01",
+      "source_url": "https://vin01.github.io/piptagole/escape-sequences/iterm2/hyper/url-handlers/code-execution/2024/05/21/arbitrary-url-schemes-terminal-emulators.html",
+      "archive_url": "TODO",
+      "date": "2024-05",
+      "severity": "rce",
+      "mechanism": "osc8-url-scheme-arg-injection",
+      "modified": false
+    },
+    {
+      "id": "parser-dos-insert-blank",
+      "title": "A control sequence with an enormous repeat/count parameter (here inser",
+      "class": "parser-dos",
+      "cve": [
+        "CVE-2012-2738",
+        "CVE-2000-0476"
+      ],
+      "author": "(VTE / xterm parser DoS lineage)",
+      "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2012-2738",
+      "archive_url": "TODO",
+      "date": "2012-06",
+      "severity": "dos",
+      "mechanism": "huge-repeat-count",
+      "modified": false
+    },
+    {
+      "id": "regis-decoder-overflow-2023",
+      "title": "A ReGIS char-set-name reporting sequence overruns a buffer in xterm (t",
+      "class": "regis-decoder",
+      "cve": [
+        "CVE-2023-40359"
+      ],
+      "author": "(xterm ReGIS reporting overflow)",
+      "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2023-40359",
+      "archive_url": "TODO",
+      "date": "2023-08",
+      "severity": "dos",
+      "mechanism": "regis-charset-name-overflow",
+      "modified": false
+    },
+    {
+      "id": "sixel-decoder-overflow-2022",
+      "title": "A Sixel image with a repeat operator that overruns a bounds check in x",
+      "class": "sixel-decoder",
+      "cve": [
+        "CVE-2022-24130"
+      ],
+      "author": "David Leadbeater",
+      "source_url": "https://dgl.cx/2023/09/ansi-terminal-security",
+      "archive_url": "http://web.archive.org/web/20260617084902/https://dgl.cx/2023/09/ansi-terminal-security",
+      "date": "2022-01",
+      "severity": "dos",
+      "mechanism": "sixel-repeat-overflow",
+      "modified": false
+    },
+    {
+      "id": "title-change-dos-2021",
+      "title": "A flood of rapid window-title changes (OSC 0) exhausts CPU/memory and ",
+      "class": "title-change-dos",
+      "cve": [
+        "CVE-2021-28847",
+        "CVE-2021-28848",
+        "CVE-2021-32198",
+        "CVE-2021-33500",
+        "CVE-2021-42095"
+      ],
+      "author": "Eviatar Gerzi (CyberArk)",
+      "source_url": "https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters",
+      "archive_url": "http://web.archive.org/web/20260511163824/https://www.cyberark.com/resources/threat-research-blog/dont-trust-this-title-abusing-terminal-emulators-with-ansi-escape-characters",
+      "date": "2021-03",
+      "severity": "dos",
+      "mechanism": "title-change-flood",
+      "modified": false
+    },
+    {
       "id": "title-report-echoback-2003",
       "title": "Window title set-then-report echoback (command injection)",
       "class": "title-report-echoback",
@@ -107,6 +236,21 @@
       "severity": "spoof",
       "mechanism": "bidi-override-reorder",
       "modified": false
+    },
+    {
+      "id": "window-ops-iconlabel-report-2003",
+      "title": "A window-operation variant of the echoback class: set the icon label v",
+      "class": "window-ops",
+      "cve": [
+        "CVE-2003-0065"
+      ],
+      "author": "HD Moore",
+      "source_url": "https://hdm.io/writing/termulation.txt",
+      "archive_url": "http://web.archive.org/web/20260617084903/https://hdm.io/writing/termulation.txt",
+      "date": "2003-02",
+      "severity": "rce",
+      "mechanism": "iconlabel-set-then-report",
+      "modified": true
     }
   ]
 }

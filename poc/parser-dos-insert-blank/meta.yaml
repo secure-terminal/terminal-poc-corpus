@@ -1,0 +1,26 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: parser-dos-insert-blank
+title: "A control sequence with an enormous repeat/count parameter (here inser"
+class: parser-dos
+cve:
+  - CVE-2012-2738
+  - CVE-2000-0476
+affected:
+  - product: "GNOME VTE"
+    tested: false
+  - product: "xterm"
+    tested: false
+author: "(VTE / xterm parser DoS lineage)"
+source_url: "https://nvd.nist.gov/vuln/detail/CVE-2012-2738"
+archive_url: "TODO"
+date: "2012-06"
+severity: dos
+mechanism: huge-repeat-count
+verification: denial-of-service
+payload_encoding: hex
+expected_effect: >-
+  A control sequence with an enormous repeat/count parameter (here insert-blank-characters CSI <huge> @) drives excessive memory/CPU in VTE/xterm. A secure terminal strips the sequence and never allocates.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  Parser resource-exhaustion; verified by bounded time.

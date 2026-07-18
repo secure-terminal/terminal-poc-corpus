@@ -97,9 +97,9 @@
     },
     "verification": {
       "type": "string",
-      "enum": ["canary-command", "display-deception", "clipboard-exfil", "hyperlink-mismatch"],
+      "enum": ["canary-command", "display-deception", "clipboard-exfil", "hyperlink-mismatch", "denial-of-service", "decoder-crash", "paste-bypass"],
       "default": "canary-command",
-      "description": "How a hit is detected. canary-command: a fired injection runs the safe canary command (writes the marker). display-deception: the rendered text differs from the logical text (bidi/homoglyph). clipboard-exfil: the payload silently sets the clipboard to the canary token. hyperlink-mismatch: the visible link text differs from its target. Non-command modes carry no shell command, so they are inherently harmless."
+      "description": "How a hit is detected. canary-command: a fired injection runs the safe canary command (writes the marker). display-deception: the rendered text differs from the logical text (bidi/homoglyph/charset/cursor). clipboard-exfil: the payload silently sets the clipboard to the canary token. hyperlink-mismatch: the visible link text differs from its target. denial-of-service: the payload tries to hang/exhaust the terminal (a secure terminal processes it in bounded time). decoder-crash: a decoder (Sixel/ReGIS) overflow (a secure terminal never runs the decoder). paste-bypass: an escape that breaks the bracketed-paste guard (a secure terminal's paste sanitizer strips it). Non-command modes carry no directly-executable shell command, so they are inherently harmless at rest."
     },
     "canary": {
       "type": "string",

@@ -215,11 +215,48 @@ def _hit_hyperlink_mismatch(payload):
     return hit
 
 
+def _hit_denial_of_service(payload):
+    """denial-of-service: a flood / huge-repeat payload tries to hang or exhaust the
+    terminal. secure-terminal interprets no escapes, so it is stripped to inert text in
+    bounded time. A hit = it hangs (past the bound) or crashes."""
+    if ST_PKG and ST_PKG not in sys.path:
+        sys.path.insert(0, ST_PKG)
+    from secure_terminal.sanitize import render_output            # noqa: E402
+    import time as _time                                          # noqa: E402
+    start = _time.monotonic()
+    try:
+        render_output(payload.decode('utf-8', 'replace'), 'strip')
+    except Exception:              # pylint: disable=broad-except -- a crash IS a hit
+        return True
+    return (_time.monotonic() - start) > 2.0
+
+
+def _hit_decoder_crash(payload):
+    """decoder-crash: a Sixel / ReGIS decoder overflow. secure-terminal never runs a
+    decoder (it strips the sequence), so it neither crashes nor hangs -- same property
+    as DoS."""
+    return _hit_denial_of_service(payload)
+
+
+def _hit_paste_bypass(payload):
+    """paste-bypass: an escape that breaks the bracketed-paste guard so injected content
+    reaches the shell. secure-terminal's paste sanitizer strips escapes. A hit = an ESC
+    / C1 control (the guard-breaking byte) survives the paste sanitizer."""
+    if ST_PKG and ST_PKG not in sys.path:
+        sys.path.insert(0, ST_PKG)
+    from secure_terminal.sanitize import sanitize_paste           # noqa: E402
+    cleaned = sanitize_paste(payload.decode('utf-8', 'replace'))
+    return '\x1b' in cleaned or '\x9b' in cleaned
+
+
 _CHECKS = {
     'canary-command': _hit_canary_command,
     'display-deception': _hit_display_deception,
     'clipboard-exfil': _hit_clipboard_exfil,
     'hyperlink-mismatch': _hit_hyperlink_mismatch,
+    'denial-of-service': _hit_denial_of_service,
+    'decoder-crash': _hit_decoder_crash,
+    'paste-bypass': _hit_paste_bypass,
 }
 
 

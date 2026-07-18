@@ -1,0 +1,27 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: window-ops-iconlabel-report-2003
+title: "A window-operation variant of the echoback class: set the icon label v"
+class: window-ops
+cve:
+  - CVE-2003-0065
+affected:
+  - product: "uxterm"
+    tested: false
+  - product: "xterm"
+    tested: false
+author: "HD Moore"
+source_url: "https://hdm.io/writing/termulation.txt"
+archive_url: "http://web.archive.org/web/20260617084903/https://hdm.io/writing/termulation.txt"
+date: "2003-02"
+severity: rce
+mechanism: iconlabel-set-then-report
+verification: canary-command
+payload_encoding: hex
+expected_effect: >-
+  A window-operation variant of the echoback class: set the icon label via OSC 1, then request it back via CSI 20 t. A vulnerable terminal reflects the icon label into the shell input.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream sets the icon label to an arbitrary command; here it is the safe canary command.
+notes: >-
+  Same set-then-report family as title-report; window-ops covers the CSI t window/icon operations.
