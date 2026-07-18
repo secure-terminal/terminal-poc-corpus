@@ -1,0 +1,96 @@
+{
+  "$comment": "Safe-acquisition manifest for external terminal conformance / test / fuzz-seed corpora used alongside this PoC corpus. Policy (see README.md): apt-first (signed Debian repo); else clone a git repo pinned to a REVIEWED commit SHA (never a mutable branch/tag; GitHub tag signatures are web-flow -> reject); verify a real maintainer GPG fingerprint out-of-band where one exists (only vttest offers this). SHAs below are the HEAD at manifest time -- REVIEW the pinned commit before trusting it.",
+  "policy": {
+    "prefer": "apt",
+    "git_pin": "commit-sha-only",
+    "reject": ["mutable-branch-or-tag", "github-web-flow-signature", "unsigned-tarball"],
+    "verify_fingerprint_out_of_band": true
+  },
+  "suites": [
+    {
+      "id": "vttest",
+      "purpose": "conformance",
+      "license": "BSD",
+      "method": "apt",
+      "apt_package": "vttest",
+      "tarball_fallback": "https://invisible-island.net/datafiles/release/vttest.tar.gz",
+      "gpg_fingerprint": "19882D92 DDA4C400 C22C0D56 CC2AF447 2167BE03",
+      "notes": "Debian signed repo is the safe path. Tarball is PGP-signed by Thomas E. Dickey; verify the fingerprint out-of-band. Use the bare invisible-island.net host (www cert mismatch)."
+    },
+    {
+      "id": "pyte",
+      "purpose": "conformance+reference-parser",
+      "license": "LGPL-3.0",
+      "method": "apt+git",
+      "apt_package": "python3-pyte",
+      "git_url": "https://github.com/selectel/pyte",
+      "pin": "0718fa80887dc646c2121b6706b362cc8c594032",
+      "notes": "apt for the library; git (pinned) only if the packaged tests are absent. Doubles as a known-good reference parser for differential testing."
+    },
+    {
+      "id": "libvterm",
+      "purpose": "conformance+reference-parser",
+      "license": "MIT",
+      "method": "apt+git",
+      "apt_package": "libvterm-dev",
+      "git_url": "https://github.com/neovim/libvterm",
+      "pin": "934bc2fbf21800ac3458a499df8820ca5fb45fd3",
+      "notes": "Maintained neovim fork (avoid the dormant upstream Bazaar). git only for the t/ conformance tests."
+    },
+    {
+      "id": "esctest2",
+      "purpose": "conformance",
+      "license": "GPL-2.0",
+      "method": "git",
+      "git_url": "https://github.com/ThomasDickey/esctest2",
+      "pin": "664be3cf2c1e3f06bc93a8bafb48a0db83c607db",
+      "notes": "No apt package. Most thorough automated assertion-based conformance suite. Reject any web-flow tag sig; rely on the pinned SHA (same author as vttest/xterm/ncurses)."
+    },
+    {
+      "id": "ghostty",
+      "purpose": "conformance-corpus",
+      "license": "MIT",
+      "method": "git",
+      "git_url": "https://github.com/ghostty-org/ghostty",
+      "pin": "f3c9a2b7262a989ba7e9408d00471fda8f788d16",
+      "notes": "src/terminal unit tests + /test acceptance cases -- the most aggressive real-world edge-case set. Case data is language-agnostic (Zig only needed to run in-tree)."
+    },
+    {
+      "id": "alacritty-vte",
+      "purpose": "fuzz",
+      "license": "Apache-2.0 OR MIT",
+      "method": "git",
+      "git_url": "https://github.com/alacritty/vte",
+      "pin": "abeae765dd546dfff60b278f0757dcc71beb8ab1",
+      "notes": "Parser fuzz targets -- the memory-safety/DoS layer."
+    },
+    {
+      "id": "vt100-rust",
+      "purpose": "fuzz-seed",
+      "license": "MIT",
+      "method": "git",
+      "git_url": "https://github.com/doy/vt100-rust",
+      "pin": "fc26fd9c3d72f9af8a214741c100920734500de7",
+      "notes": "Curated fuzz seed corpus for the parser."
+    },
+    {
+      "id": "vtebench",
+      "purpose": "stress",
+      "license": "Apache-2.0 OR MIT",
+      "method": "git",
+      "git_url": "https://github.com/alacritty/vtebench",
+      "pin": "ead80032e57dee2e75f0b51f2ea67528647d9944",
+      "optional": true,
+      "notes": "Throughput / DoS stress only. A payload GENERATOR -- run it in the sandbox, never cat its output."
+    },
+    {
+      "id": "terminalguide",
+      "purpose": "reference-data",
+      "license": "MIT",
+      "method": "git",
+      "git_url": "https://github.com/terminalguide/terminalguide",
+      "pin": "fe698cfa982cbae62a9141f5268a3390819a516c",
+      "notes": "Behaviour tables snapshot -- reference DATA only, not executed."
+    }
+  ]
+}

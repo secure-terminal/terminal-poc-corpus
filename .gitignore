@@ -3,3 +3,6 @@
 *.decoded
 __pycache__/
 *.pyc
+
+# vendored external conformance corpora (acquired via conformance/acquire.sh)
+conformance/vendor/
