@@ -10,7 +10,7 @@
 ## shots the DECORATED window (title bar included, no desktop background), so the
 ## emulator and any title hijack are both legible:
 ##   Case A (random) : head -c 20000 /dev/urandom  -- genuine random data.
-##   Case B (crafted): ./hostile-log.sh            -- an OSC-0 title hijack plus a
+##   Case B (crafted): ./hostile-script.sh            -- an OSC-0 title hijack plus a
 ##                     stuck colour and a DEC line-drawing charset shift, none reset.
 ## secure-terminal (its real GUI, from ST_REPO) is captured the same way for a
 ## like-for-like shot. Output PNGs go to ./shots/.
@@ -32,7 +32,7 @@ here="$(dirname -- "$(readlink --canonicalize -- "$0")")"
 out="${here}/shots"
 mkdir --parents -- "${out}"
 
-"${here}/hostile-log.sh" > "${here}/crafted.bin"
+"${here}/hostile-script.sh" > "${here}/crafted.bin"
 head --bytes=20000 /dev/urandom > "${here}/random.bin"
 
 export DISPLAY=":101"

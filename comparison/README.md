@@ -10,7 +10,7 @@ secure-terminal, and see what each one does.
 - **Case A - random.** `head -c 20000 /dev/urandom`. Genuine random data with no
   crafted escapes. Whatever corruption appears is what random bytes do; no chosen
   title string is possible.
-- **Case B - a crafted hostile log.** [`hostile-log.sh`](hostile-log.sh) emits an
+- **Case B - a crafted hostile log.** [`hostile-script.sh`](hostile-script.sh) emits an
   ordinary looking log that carries, mid-stream, the escapes a real hostile log or
   program output can carry:
   - `OSC 0` - silently rewrites the window / tab title to `root@prod-db:~#`
@@ -19,7 +19,9 @@ secure-terminal, and see what each one does.
   - `ESC ( 0` - a shift into the DEC line-drawing charset, never reset.
 
   The script is plain, deterministic `printf`: same bytes every run, easy to read.
-  Run `./hostile-log.sh | cat -v` to see the raw bytes.
+  **Running it IS the reproduction**: `./hostile-script.sh` emits the raw escapes
+  straight into your terminal (that is what hijacks the title). To read the bytes
+  *without* triggering them, pipe through `cat -v`: `./hostile-script.sh | cat -v`.
 
 ## Run the capture
 
