@@ -9,7 +9,7 @@ affected:
     tested: false
 author: "(xterm ReGIS reporting overflow)"
 source_url: "https://nvd.nist.gov/vuln/detail/CVE-2023-40359"
-archive_url: "TODO"
+archive_url: "http://web.archive.org/web/20260417114936/https://nvd.nist.gov/vuln/detail/CVE-2023-40359"
 date: "2023-08"
 severity: dos
 mechanism: regis-charset-name-overflow

@@ -10,7 +10,7 @@ affected:
     tested: false
 author: "(rxvt-unicode OSC 705 background eval)"
 source_url: "https://nvd.nist.gov/vuln/detail/CVE-2022-4170"
-archive_url: "TODO"
+archive_url: "http://web.archive.org/web/20260528140514/https://nvd.nist.gov/vuln/detail/CVE-2022-4170"
 date: "2022-11"
 severity: rce
 mechanism: osc705-eval

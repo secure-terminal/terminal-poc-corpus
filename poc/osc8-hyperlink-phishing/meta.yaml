@@ -8,7 +8,7 @@ affected:
     tested: false
 author: "(OSC 8 hyperlink spec abuse; publicly documented class)"
 source_url: "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda"
-archive_url: "TODO"
+archive_url: "http://web.archive.org/web/20260709012023/https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda"
 date: "2017"
 severity: spoof
 mechanism: osc8-visible-vs-target

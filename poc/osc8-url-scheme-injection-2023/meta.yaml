@@ -13,7 +13,7 @@ affected:
     tested: false
 author: "Vin01"
 source_url: "https://vin01.github.io/piptagole/escape-sequences/iterm2/hyper/url-handlers/code-execution/2024/05/21/arbitrary-url-schemes-terminal-emulators.html"
-archive_url: "TODO"
+archive_url: "http://web.archive.org/web/20260716163924/https://vin01.github.io/piptagole/escape-sequences/iterm2/hyper/url-handlers/code-execution/2024/05/21/arbitrary-url-schemes-terminal-emulators.html"
 date: "2024-05"
 severity: rce
 mechanism: osc8-url-scheme-arg-injection
