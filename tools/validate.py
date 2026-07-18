@@ -41,6 +41,45 @@ def _payload_is_hex(path):
         return False
 
 
+# Command fragments a canary-forked payload must NEVER contain: a fired PoC may only
+# perform the safe canary action (write the marker), never anything that could harm a
+# tester. A hit here means the PoC was not properly sanitized (see ../SAFETY.md).
+_HARMFUL = (
+    b'rm ', b'rm\t', b'rmdir', b'mkfs', b'dd if=', b'dd of=', b' of=/dev',
+    b'curl', b'wget', b'ncat', b'nc -', b'telnet', b'/dev/sd', b'/dev/nvme',
+    b':(){', b'chmod +s', b'chmod u+s', b'chown ', b'shred', b'mkswap',
+    b'| sh', b'|sh', b'| bash', b'|bash', b'eval ', b'os.system', b'subprocess',
+    b'>/etc/', b'> /etc/', b'sudo ', b'/etc/passwd', b'/etc/shadow', b'crontab',
+    b'systemctl', b'pkill', b'reboot', b'shutdown', b'poweroff',
+)
+
+
+def _payload_safety(payload_path, meta):
+    """Enforce the sanitization invariant (../SAFETY.md): a canary-forked payload may
+    ONLY do the safe canary action. Decode the (inert) bytes and check they carry NO
+    harmful command fragment and DO reference the canary convention -- a first-line
+    lint that backs the per-PoC human / ai-review sanitization gate."""
+    problems = []
+    body = []
+    with open(payload_path, encoding='ascii') as handle:
+        for line in handle:
+            body.append(''.join(line.split('#', 1)[0].split()))
+    try:
+        raw = binascii.unhexlify(''.join(body))
+    except (binascii.Error, ValueError):
+        return ['payload.hex is not decodable for the safety check']
+    low = raw.lower()
+    for frag in _HARMFUL:
+        if frag in low:
+            problems.append('payload carries a HARMFUL fragment %r (not sanitized)'
+                            % frag.decode('ascii'))
+    canary = (meta.get('canary') or '').encode('ascii', 'replace')
+    if b'POC_CANARY' not in raw and not (canary and canary in raw):
+        problems.append('payload references neither $POC_CANARY nor its canary token '
+                        '(a fired PoC must perform the safe canary action)')
+    return problems
+
+
 def main():
     with open(os.path.join(ROOT, 'schema', 'poc.schema.json'), encoding='utf-8') as fh:
         schema = json.load(fh)
@@ -68,6 +107,8 @@ def main():
                 problems.append('missing payload.hex')
             elif not _payload_is_hex(payload):
                 problems.append('payload.hex is not valid hex (read-safety violation)')
+            else:
+                problems.extend(_payload_safety(payload, meta))
         if not os.path.isfile(os.path.join(poc_dir, 'expected.md')):
             problems.append('missing expected.md')
         if problems:
