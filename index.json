@@ -1,6 +1,6 @@
 {
   "schema": "schema/poc.schema.json",
-  "count": 3,
+  "count": 7,
   "pocs": [
     {
       "id": "decrqss-reflection-2023",
@@ -20,6 +20,21 @@
       "modified": true
     },
     {
+      "id": "homoglyph-2021",
+      "title": "Homoglyph identifier deception",
+      "class": "homoglyph",
+      "cve": [
+        "CVE-2021-42694"
+      ],
+      "author": "Nicholas Boucher, Ross Anderson",
+      "source_url": "https://trojansource.codes/",
+      "archive_url": "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source",
+      "date": "2021-11",
+      "severity": "spoof",
+      "mechanism": "homoglyph-substitution",
+      "modified": false
+    },
+    {
       "id": "osc50-font-query-echoback-2022",
       "title": "OSC 50 font set-then-query echoback (command injection)",
       "class": "osc50-font-query-echoback",
@@ -34,6 +49,32 @@
       "severity": "rce",
       "mechanism": "osc50-font-set-then-query",
       "modified": true
+    },
+    {
+      "id": "osc52-clipboard-write",
+      "title": "OSC 52 silent clipboard overwrite (paste hijack)",
+      "class": "osc52-clipboard-write",
+      "cve": [],
+      "author": "(OSC 52 clipboard-write abuse; publicly documented class)",
+      "source_url": "https://secure-terminal.github.io",
+      "archive_url": "TODO",
+      "date": "2020",
+      "severity": "spoof",
+      "mechanism": "osc52-clipboard-set",
+      "modified": true
+    },
+    {
+      "id": "osc8-hyperlink-phishing",
+      "title": "OSC 8 hyperlink text/target mismatch (phishing)",
+      "class": "osc8-hyperlink-phishing",
+      "cve": [],
+      "author": "(OSC 8 hyperlink spec abuse; publicly documented class)",
+      "source_url": "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda",
+      "archive_url": "TODO",
+      "date": "2017",
+      "severity": "spoof",
+      "mechanism": "osc8-visible-vs-target",
+      "modified": false
     },
     {
       "id": "title-report-echoback-2003",
@@ -51,6 +92,21 @@
       "severity": "rce",
       "mechanism": "title-set-then-report",
       "modified": true
+    },
+    {
+      "id": "trojan-source-bidi-2021",
+      "title": "Trojan-Source bidirectional-override deception",
+      "class": "trojan-source-bidi",
+      "cve": [
+        "CVE-2021-42574"
+      ],
+      "author": "Nicholas Boucher, Ross Anderson",
+      "source_url": "https://trojansource.codes/",
+      "archive_url": "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source",
+      "date": "2021-11",
+      "severity": "spoof",
+      "mechanism": "bidi-override-reorder",
+      "modified": false
     }
   ]
 }

@@ -1,0 +1,25 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: homoglyph-2021
+title: "Homoglyph identifier deception"
+class: homoglyph
+cve:
+  - CVE-2021-42694
+affected:
+  - product: "Unicode character definitions (all terminals/editors/compilers)"
+    tested: false
+author: "Nicholas Boucher, Ross Anderson"
+source_url: "https://trojansource.codes/"
+archive_url: "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source"
+date: "2021-11"
+severity: spoof
+mechanism: homoglyph-substitution
+references:
+  - "https://nvd.nist.gov/vuln/detail/CVE-2021-42694"
+verification: display-deception
+payload_encoding: hex
+expected_effect: >-
+  A visually identical code point (here Cyrillic U+0430 for Latin a) makes one identifier look like another ("admin" vs "<U+0430>dmin") while being a distinct string. Carries no executable content; the harm is pure visual deception.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  secure-terminal reveals/marks non-ASCII code points so the homoglyph is visible. Sibling class: trojan-source-bidi-2021 (CVE-2021-42574).

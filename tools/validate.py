@@ -73,10 +73,16 @@ def _payload_safety(payload_path, meta):
         if frag in low:
             problems.append('payload carries a HARMFUL fragment %r (not sanitized)'
                             % frag.decode('ascii'))
-    canary = (meta.get('canary') or '').encode('ascii', 'replace')
-    if b'POC_CANARY' not in raw and not (canary and canary in raw):
-        problems.append('payload references neither $POC_CANARY nor its canary token '
-                        '(a fired PoC must perform the safe canary action)')
+    # A canary-command PoC MUST reference the canary convention (so a fired injection
+    # only runs the safe marker-write). The non-command modes (display-deception,
+    # clipboard-exfil, hyperlink-mismatch) carry no shell command at all, so they are
+    # inherently harmless and this check does not apply -- the harmful-fragment scan
+    # above is still the safety net.
+    if meta.get('verification', 'canary-command') == 'canary-command':
+        canary = (meta.get('canary') or '').encode('ascii', 'replace')
+        if b'POC_CANARY' not in raw and not (canary and canary in raw):
+            problems.append('canary-command payload references neither $POC_CANARY nor '
+                            'its canary token (a fired PoC must perform the safe action)')
     return problems
 
 

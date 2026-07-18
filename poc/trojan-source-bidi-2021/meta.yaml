@@ -1,0 +1,26 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: trojan-source-bidi-2021
+title: "Trojan-Source bidirectional-override deception"
+class: trojan-source-bidi
+cve:
+  - CVE-2021-42574
+affected:
+  - product: "Unicode Bidi algorithm (all terminals/editors/compilers)"
+    tested: false
+author: "Nicholas Boucher, Ross Anderson"
+source_url: "https://trojansource.codes/"
+archive_url: "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source"
+date: "2021-11"
+severity: spoof
+mechanism: bidi-override-reorder
+references:
+  - "https://nvd.nist.gov/vuln/detail/CVE-2021-42574"
+  - "USENIX Security 2023"
+verification: display-deception
+payload_encoding: hex
+expected_effect: >-
+  Bidirectional-override control characters (U+202E RLO, U+202C PDF, and the isolates U+2066-2069) make the RENDERED order of the text differ from its LOGICAL byte order, so a reviewer and a compiler/shell "see" different things. Carries no executable content; the harm is pure visual deception.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  secure-terminal neutralizes bidi controls (marks them) so rendered order == logical order. Sibling class: homoglyph-2021 (CVE-2021-42694).

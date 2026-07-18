@@ -1,0 +1,4 @@
+# HEX ONLY (read-safe). display-deception canary: the canary token with Cyrillic
+# homoglyphs (O->U+041E, A->U+0410) -- it READS as 'POC-CORPUS-CANARY-FIRED' but is a
+# distinct string. A neutralizing terminal reveals/marks the non-ASCII code points.
+50 d0 9e 43 2d 43 d0 9e 52 50 55 53 2d 43 d0 90 4e d0 90 52 59 2d 46 49 52 45 44

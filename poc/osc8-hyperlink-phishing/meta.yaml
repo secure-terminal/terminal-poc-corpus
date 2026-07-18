@@ -1,0 +1,24 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: osc8-hyperlink-phishing
+title: "OSC 8 hyperlink text/target mismatch (phishing)"
+class: osc8-hyperlink-phishing
+cve: []
+affected:
+  - product: "terminals supporting OSC 8 hyperlinks"
+    tested: false
+author: "(OSC 8 hyperlink spec abuse; publicly documented class)"
+source_url: "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda"
+archive_url: "TODO"
+date: "2017"
+severity: spoof
+mechanism: osc8-visible-vs-target
+references:
+  - "OSC 8 hyperlink specification (Egmont Koblinger)"
+verification: hyperlink-mismatch
+payload_encoding: hex
+expected_effect: >-
+  An OSC 8 hyperlink whose VISIBLE text (https://bank.example) differs from its actual TARGET (https://attacker.example/...). A user clicking the trusted-looking text is sent elsewhere. Carries no executable content.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false
+notes: >-
+  secure-terminal does not render OSC 8 hyperlinks (osc_hyperlink off by default), so the target cannot be hidden behind different visible text.

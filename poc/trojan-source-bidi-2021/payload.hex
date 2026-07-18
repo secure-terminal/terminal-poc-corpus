@@ -1,0 +1,4 @@
+# HEX ONLY (read-safe). display-deception canary: U+202E (RLO) + the REVERSED canary
+# token, so a bidi-rendering terminal DISPLAYS 'POC-CORPUS-CANARY-FIRED' while the
+# logical bytes are scrambled. A neutralizing terminal shows the scrambled form.
+e2 80 ae 44 45 52 49 46 2d 59 52 41 4e 41 43 2d 53 55 50 52 4f 43 2d 43 4f 50

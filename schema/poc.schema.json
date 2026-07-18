@@ -95,10 +95,16 @@
       "minLength": 1,
       "description": "Worded description of what a vulnerable terminal does with the payload."
     },
+    "verification": {
+      "type": "string",
+      "enum": ["canary-command", "display-deception", "clipboard-exfil", "hyperlink-mismatch"],
+      "default": "canary-command",
+      "description": "How a hit is detected. canary-command: a fired injection runs the safe canary command (writes the marker). display-deception: the rendered text differs from the logical text (bidi/homoglyph). clipboard-exfil: the payload silently sets the clipboard to the canary token. hyperlink-mismatch: the visible link text differs from its target. Non-command modes carry no shell command, so they are inherently harmless."
+    },
     "canary": {
       "type": "string",
       "minLength": 1,
-      "description": "The unique marker token a fired (canary-forked) payload writes, so the harness can detect a hit without any harmful action."
+      "description": "The unique marker token used to detect a hit for this verification mode (the command's marker file, the clipboard token, the reordered/homoglyph token, or the phishing target marker)."
     },
     "modified": {
       "type": "boolean",

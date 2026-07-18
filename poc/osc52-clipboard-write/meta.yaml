@@ -1,0 +1,26 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: osc52-clipboard-write
+title: "OSC 52 silent clipboard overwrite (paste hijack)"
+class: osc52-clipboard-write
+cve: []
+affected:
+  - product: "terminals with OSC 52 clipboard write enabled"
+    tested: false
+author: "(OSC 52 clipboard-write abuse; publicly documented class)"
+source_url: "https://secure-terminal.github.io"
+archive_url: "TODO"
+date: "2020"
+severity: spoof
+mechanism: osc52-clipboard-set
+references:
+  - "OSC 52 clipboard operating-system-command"
+verification: clipboard-exfil
+payload_encoding: hex
+expected_effect: >-
+  OSC 52 lets program output SET the system clipboard. A program can silently overwrite your clipboard so your next paste inserts text you did not copy (paste-hijack). This corpus sets it to the BENIGN canary token, so a hit only puts a harmless marker on the clipboard.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream abuse overwrites the clipboard with an attacker command so the victim pastes and runs it; here the clipboard is set to the benign canary token only.
+notes: >-
+  secure-terminal gates OSC 52 clipboard write (osc_clipboard off by default), so untrusted output cannot set the clipboard.

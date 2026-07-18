@@ -1,0 +1,4 @@
+# HEX ONLY (read-safe): OSC 52 sets the system clipboard to base64 of the BENIGN
+# canary token (a hit = the clipboard now holds POC-CORPUS-CANARY-FIRED, harmless).
+# OSC 52 ; c ; <base64(canary token)> BEL
+1b 5d 35 32 3b 63 3b 55 45 39 44 4c 55 4e 50 55 6c 42 56 55 79 31 44 51 55 35 42 55 6c 6b 74 52 6b 6c 53 52 55 51 3d 07

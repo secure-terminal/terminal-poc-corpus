@@ -1,0 +1,8 @@
+# HEX ONLY (read-safe). hyperlink-mismatch canary: the link TARGET contains the canary
+# token, while the VISIBLE text is a different, trusted-looking URL.
+# OSC 8 ; ; <target with canary token> ST
+1b 5d 38 3b 3b 68 74 74 70 73 3a 2f 2f 61 74 74 61 63 6b 65 72 2e 65 78 61 6d 70 6c 65 2f 50 4f 43 2d 43 4f 52 50 55 53 2d 43 41 4e 41 52 59 2d 46 49 52 45 44 1b 5c
+# <visible text> (differs from the target)
+68 74 74 70 73 3a 2f 2f 62 61 6e 6b 2e 65 78 61 6d 70 6c 65
+# OSC 8 ; ; ST
+1b 5d 38 3b 3b 1b 5c
