@@ -40,6 +40,11 @@ def require_sandbox():
         return
     if os.environ.get('DIST_AI_IN_SANDBOX') == '1':
         return
+    # GitHub CI runners are ephemeral, isolated throwaway VMs -- the "GitHub CI only
+    # initially" target for the adversarial corpus test. Treat them as an allowed
+    # confined context, like the sandbox.
+    if os.environ.get('GITHUB_ACTIONS') == 'true' or os.environ.get('CI') == 'true':
+        return
     if os.environ.get('POC_CORPUS_ALLOW_HOST') == '1':
         sys.stderr.write('poc-corpus: WARNING: POC_CORPUS_ALLOW_HOST=1 -- decoding '
                          'live payloads outside the sandbox. See SAFETY.md.\n')
