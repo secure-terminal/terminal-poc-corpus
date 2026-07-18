@@ -1,7 +1,20 @@
 {
   "schema": "schema/poc.schema.json",
-  "count": 16,
+  "count": 21,
   "pocs": [
+    {
+      "id": "answerback-injection",
+      "title": "The ENQ control (0x05) makes a terminal transmit its answerback string",
+      "class": "answerback-injection",
+      "cve": [],
+      "author": "(ENQ answerback abuse; documented class)",
+      "source_url": "https://hdm.io/writing/termulation.txt",
+      "archive_url": "http://web.archive.org/web/20260617084903/https://hdm.io/writing/termulation.txt",
+      "date": "2003-02",
+      "severity": "injection",
+      "mechanism": "enq-answerback",
+      "modified": false
+    },
     {
       "id": "bracketed-paste-bypass-2021",
       "title": "Pasted content that embeds the end-bracketed-paste sequence (CSI 201 ~",
@@ -20,6 +33,32 @@
       "modified": true
     },
     {
+      "id": "charset-shift-deception",
+      "title": "A charset shift (ESC ( 0, DEC special graphics) makes plain ASCII rend",
+      "class": "charset-shift-deception",
+      "cve": [],
+      "author": "(charset-shift deception; documented class)",
+      "source_url": "https://secure-terminal.github.io",
+      "archive_url": "TODO",
+      "date": "2020",
+      "severity": "spoof",
+      "mechanism": "dec-special-graphics-shift",
+      "modified": false
+    },
+    {
+      "id": "cursor-addressing-spoof",
+      "title": "Cursor addressing (cursor-up + erase-line + rewrite) overwrites earlie",
+      "class": "cursor-addressing-spoof",
+      "cve": [],
+      "author": "(cursor-overwrite deception; documented class)",
+      "source_url": "https://secure-terminal.github.io",
+      "archive_url": "TODO",
+      "date": "2020",
+      "severity": "spoof",
+      "mechanism": "cursor-up-erase-overwrite",
+      "modified": false
+    },
+    {
       "id": "decrqss-reflection-2023",
       "title": "DECRQSS status-request reflection (near-arbitrary input injection)",
       "class": "decrqss-reflection",
@@ -35,6 +74,21 @@
       "severity": "rce",
       "mechanism": "decrqss-reflection",
       "modified": true
+    },
+    {
+      "id": "device-status-reflection-rxvt-2021",
+      "title": "A colour query (OSC 10 ; ?) makes the terminal write its reply back in",
+      "class": "device-status-reflection",
+      "cve": [
+        "CVE-2021-33477"
+      ],
+      "author": "(rxvt-unicode DSR/colour-query newline)",
+      "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2021-33477",
+      "archive_url": "TODO",
+      "date": "2021-05",
+      "severity": "injection",
+      "mechanism": "colour-query-reflection",
+      "modified": false
     },
     {
       "id": "homoglyph-2021",
@@ -65,6 +119,21 @@
       "date": "2024-06",
       "severity": "rce",
       "mechanism": "title-set-then-report",
+      "modified": true
+    },
+    {
+      "id": "notification-spoof-kitty-2022",
+      "title": "A desktop-notification OSC (OSC 9 / 99) carries attacker-chosen text t",
+      "class": "notification-spoof",
+      "cve": [
+        "CVE-2022-41322"
+      ],
+      "author": "(kitty desktop-notification OSC injection)",
+      "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2022-41322",
+      "archive_url": "TODO",
+      "date": "2022-09",
+      "severity": "spoof",
+      "mechanism": "osc-notification-text",
       "modified": true
     },
     {

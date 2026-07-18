@@ -1,0 +1,20 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: cursor-addressing-spoof
+title: "Cursor addressing (cursor-up + erase-line + rewrite) overwrites earlie"
+class: cursor-addressing-spoof
+cve: []
+affected:
+  - product: "terminals honouring cursor addressing in line mode"
+    tested: false
+author: "(cursor-overwrite deception; documented class)"
+source_url: "https://secure-terminal.github.io"
+archive_url: "TODO"
+date: "2020"
+severity: spoof
+mechanism: cursor-up-erase-overwrite
+verification: cursor-spoof
+payload_encoding: hex
+expected_effect: >-
+  Cursor addressing (cursor-up + erase-line + rewrite) overwrites earlier output, hiding what was shown. The payload prints the canary token, then repositions and overwrites it with a benign-looking line; on a terminal honouring the controls in line mode, the token is hidden.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false

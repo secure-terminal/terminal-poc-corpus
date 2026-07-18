@@ -249,6 +249,53 @@ def _hit_paste_bypass(payload):
     return '\x1b' in cleaned or '\x9b' in cleaned
 
 
+def _hit_reflection(payload):
+    """reflection: the terminal answers a query (DSR, device attributes, ENQ
+    answerback, colour query) by writing the reply back to the pty -- the primitive
+    behind the echoback class, and on a vulnerable terminal an injection point. Any
+    write-back is a hit; secure-terminal answers none."""
+    return _hit_canary_command(payload)
+
+
+def _hit_notification_spoof(payload):
+    """notification-spoof: an OSC 9 / 99 desktop-notification carries attacker text. A
+    hit = a notification bearing the canary token is emitted. osc_notify is off by
+    default, so secure-terminal emits none."""
+    term = _new_term(enable_osc=False)     # osc_notify OFF (default)
+    fired = []
+    try:
+        term.notified.connect(fired.append)
+    except Exception:                  # pylint: disable=broad-except
+        pass                           # no such signal -> cannot fire
+    _feed_output(term, payload)
+    term.close()
+    return any(POC_TOKEN in str(text) for text in fired)
+
+
+def _hit_charset_deception(payload):
+    """charset-deception: a charset shift (e.g. ESC ( 0 DEC special graphics) makes
+    plain ASCII render as line-drawing glyphs, disguising the text. A hit = the render
+    contains such non-ASCII glyphs. secure-terminal's strip mode drops the shift and
+    keeps the text ASCII, so no non-ASCII appears."""
+    if ST_PKG and ST_PKG not in sys.path:
+        sys.path.insert(0, ST_PKG)
+    from secure_terminal.sanitize import render_output            # noqa: E402
+    rendered = render_output(payload.decode('utf-8', 'replace'), 'strip')
+    return any(ord(ch) > 127 for ch in rendered)
+
+
+def _hit_cursor_spoof(payload):
+    """cursor-spoof: cursor addressing (up + erase + overwrite) hides earlier output in
+    line mode. The payload writes the canary token, then repositions and overwrites it;
+    a hit = the token was HIDDEN (no longer present). secure-terminal's strip mode drops
+    the cursor controls, so the token survives -- nothing is overwritten."""
+    if ST_PKG and ST_PKG not in sys.path:
+        sys.path.insert(0, ST_PKG)
+    from secure_terminal.sanitize import render_output            # noqa: E402
+    rendered = render_output(payload.decode('utf-8', 'replace'), 'strip')
+    return POC_TOKEN not in rendered
+
+
 _CHECKS = {
     'canary-command': _hit_canary_command,
     'display-deception': _hit_display_deception,
@@ -257,6 +304,10 @@ _CHECKS = {
     'denial-of-service': _hit_denial_of_service,
     'decoder-crash': _hit_decoder_crash,
     'paste-bypass': _hit_paste_bypass,
+    'reflection': _hit_reflection,
+    'notification-spoof': _hit_notification_spoof,
+    'charset-deception': _hit_charset_deception,
+    'cursor-spoof': _hit_cursor_spoof,
 }
 
 

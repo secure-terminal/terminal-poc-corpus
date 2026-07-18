@@ -1,0 +1,20 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: charset-shift-deception
+title: "A charset shift (ESC ( 0, DEC special graphics) makes plain ASCII rend"
+class: charset-shift-deception
+cve: []
+affected:
+  - product: "terminals honouring DEC special-graphics charset"
+    tested: false
+author: "(charset-shift deception; documented class)"
+source_url: "https://secure-terminal.github.io"
+archive_url: "TODO"
+date: "2020"
+severity: spoof
+mechanism: dec-special-graphics-shift
+verification: charset-deception
+payload_encoding: hex
+expected_effect: >-
+  A charset shift (ESC ( 0, DEC special graphics) makes plain ASCII render as line-drawing glyphs, so the same bytes look like something else. Here the canary token is wrapped in a shift so it would render as line-drawing on a terminal that honours it.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: false

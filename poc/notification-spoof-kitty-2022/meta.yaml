@@ -1,0 +1,23 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: notification-spoof-kitty-2022
+title: "A desktop-notification OSC (OSC 9 / 99) carries attacker-chosen text t"
+class: notification-spoof
+cve:
+  - CVE-2022-41322
+affected:
+  - product: "kitty"
+    tested: false
+author: "(kitty desktop-notification OSC injection)"
+source_url: "https://nvd.nist.gov/vuln/detail/CVE-2022-41322"
+archive_url: "TODO"
+date: "2022-09"
+severity: spoof
+mechanism: osc-notification-text
+verification: notification-spoof
+payload_encoding: hex
+expected_effect: >-
+  A desktop-notification OSC (OSC 9 / 99) carries attacker-chosen text that pops up as a trusted-looking system notification. Here the notification text is the benign canary token.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream shows an arbitrary (phishing) notification; here the text is the benign canary token.

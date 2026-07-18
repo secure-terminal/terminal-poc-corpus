@@ -1,0 +1,22 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: device-status-reflection-rxvt-2021
+title: "A colour query (OSC 10 ; ?) makes the terminal write its reply back in"
+class: device-status-reflection
+cve:
+  - CVE-2021-33477
+affected:
+  - product: "rxvt-unicode"
+    versions_fixed: "9.30"
+    tested: false
+author: "(rxvt-unicode DSR/colour-query newline)"
+source_url: "https://nvd.nist.gov/vuln/detail/CVE-2021-33477"
+archive_url: "TODO"
+date: "2021-05"
+severity: injection
+mechanism: colour-query-reflection
+verification: reflection
+payload_encoding: hex
+expected_effect: >-
+  A colour query (OSC 10 ; ?) makes the terminal write its reply back into the shell input. In rxvt-unicode < 9.30 the reply was not newline-stripped, so the reflected bytes could inject a command. Any write-back to the pty from output is the reflection primitive this class is about.
+canary: "any write-back to the pty (a vulnerable terminal answers the query into the shell input)"
+modified: false
