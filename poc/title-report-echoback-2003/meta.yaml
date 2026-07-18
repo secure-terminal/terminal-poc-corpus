@@ -1,0 +1,44 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: title-report-echoback-2003
+title: "Window title set-then-report echoback (command injection)"
+class: title-report-echoback
+cve:
+  - CVE-2003-0063   # xterm
+  - CVE-2003-0066   # rxvt
+  - CVE-2003-0069   # PuTTY
+affected:
+  - product: xterm
+    tested: false
+  - product: rxvt
+    tested: false
+  - product: PuTTY
+    tested: false
+  - product: Eterm
+    tested: false
+author: "HD Moore (Digital Defense)"
+source_url: "https://hdm.io/writing/termulation.txt"
+archive_url: "http://web.archive.org/web/20260617084903/https://hdm.io/writing/termulation.txt"
+date: "2003-02"
+severity: rce
+mechanism: title-set-then-report
+references:
+  - "https://nvd.nist.gov/vuln/detail/CVE-2003-0063"
+  - "Bugtraq 2003/Feb/326"
+payload_encoding: hex
+expected_effect: >-
+  A vulnerable terminal, asked to report its window title, writes the title back
+  into the shell's input stream. Because the title was first set by the same
+  output, an attacker chooses what gets injected; a following newline (or the user
+  pressing Enter) executes it. This is the original 2003 terminal-echoback class.
+canary: "POC-CORPUS-CANARY-FIRED"
+modified: true
+original_ref: >-
+  Upstream PoC sets the window title to an arbitrary attacker command (e.g. a
+  destructive shell command) before reporting it. Here the title is set to a SAFE
+  canary command that only writes the canary marker file, so a fired payload cannot
+  harm the tester. See hdm.io/writing/termulation.txt for the unmodified technique.
+notes: >-
+  Same class re-broke repeatedly: ConEmu (CVE-2022-46387/CVE-2023-39150),
+  Terminology (CVE-2015-8971, unfiltered newline), iTerm2 2024
+  (CVE-2024-38395/38396). Konsole and gnome-terminal historically declined the
+  set-title/report-title feature and were not vulnerable.

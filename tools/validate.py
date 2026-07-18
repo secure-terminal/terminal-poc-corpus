@@ -1,0 +1,85 @@
+#!/usr/bin/python3 -Bsu
+# Copyright (C) 2026 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+# See the file COPYING for copying conditions.
+# AI-Assisted.
+
+"""Validate every poc/<id>/meta.yaml against schema/poc.schema.json, and check the
+cross-file invariants the schema cannot express. Reads text only -- never decodes a
+payload. Exit 0 if all valid, 1 otherwise.
+
+Needs python3-yaml and python3-jsonschema (Debian packages)."""
+
+import binascii
+import json
+import os
+import sys
+
+try:
+    import yaml
+    import jsonschema
+except ImportError as exc:
+    sys.stderr.write('poc-corpus: need python3-yaml + python3-jsonschema: %s\n' % exc)
+    raise SystemExit(2)
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _payload_is_hex(path):
+    """A payload.hex must contain ONLY hex (whitespace + '#' comments ignored), so
+    the repo stays read-safe -- no raw escape bytes ever land in a payload file."""
+    body = []
+    with open(path, encoding='ascii') as handle:
+        for line in handle:
+            body.append(''.join(line.split('#', 1)[0].split()))
+    joined = ''.join(body)
+    if not joined:
+        return False
+    try:
+        binascii.unhexlify(joined)
+        return True
+    except (binascii.Error, ValueError):
+        return False
+
+
+def main():
+    with open(os.path.join(ROOT, 'schema', 'poc.schema.json'), encoding='utf-8') as fh:
+        schema = json.load(fh)
+    validator = jsonschema.Draft202012Validator(schema)
+
+    poc_root = os.path.join(ROOT, 'poc')
+    errors = 0
+    ids = sorted(d for d in os.listdir(poc_root)
+                 if os.path.isdir(os.path.join(poc_root, d)))
+    for poc_id in ids:
+        poc_dir = os.path.join(poc_root, poc_id)
+        meta_path = os.path.join(poc_dir, 'meta.yaml')
+        if not os.path.isfile(meta_path):
+            print('FAIL %s: missing meta.yaml' % poc_id)
+            errors += 1
+            continue
+        with open(meta_path, encoding='utf-8') as fh:
+            meta = yaml.safe_load(fh)
+        problems = [e.message for e in validator.iter_errors(meta)]
+        if meta.get('id') != poc_id:
+            problems.append("id %r != directory name %r" % (meta.get('id'), poc_id))
+        if meta.get('payload_encoding') == 'hex':
+            payload = os.path.join(poc_dir, 'payload.hex')
+            if not os.path.isfile(payload):
+                problems.append('missing payload.hex')
+            elif not _payload_is_hex(payload):
+                problems.append('payload.hex is not valid hex (read-safety violation)')
+        if not os.path.isfile(os.path.join(poc_dir, 'expected.md')):
+            problems.append('missing expected.md')
+        if problems:
+            errors += 1
+            for p in problems:
+                print('FAIL %s: %s' % (poc_id, p))
+        else:
+            print('ok   %s' % poc_id)
+
+    print('-- %d PoC(s), %d with errors' % (len(ids), errors))
+    return 1 if errors else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

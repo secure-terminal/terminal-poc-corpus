@@ -1,0 +1,23 @@
+{
+  "schema": "schema/poc.schema.json",
+  "count": 1,
+  "pocs": [
+    {
+      "id": "title-report-echoback-2003",
+      "title": "Window title set-then-report echoback (command injection)",
+      "class": "title-report-echoback",
+      "cve": [
+        "CVE-2003-0063",
+        "CVE-2003-0066",
+        "CVE-2003-0069"
+      ],
+      "author": "HD Moore (Digital Defense)",
+      "source_url": "https://hdm.io/writing/termulation.txt",
+      "archive_url": "http://web.archive.org/web/20260617084903/https://hdm.io/writing/termulation.txt",
+      "date": "2003-02",
+      "severity": "rce",
+      "mechanism": "title-set-then-report",
+      "modified": true
+    }
+  ]
+}

