@@ -279,33 +279,61 @@ def _harvest(suite_id, env_var, patterns):
     return sorted(seqs)
 
 
-def _check_invariants(seq):
-    """Feed one sequence to secure-terminal; return a list of invariant violations
-    (empty == clean). Reuses the adversarial harness observables."""
+def _invariant_violations(sent, text):
+    """The pure invariant predicate over an observed (pty write-back, rendered
+    text) pair: returns the list of violations (empty == clean). Shared by the
+    real check and the negative control so both exercise the SAME logic.
+
+    secure-terminal's CLI mode deliberately passes through printable ASCII plus
+    tab, newline, and the two line-LOCAL cursor controls it documents: backspace
+    (0x08) and carriage return (0x0D). Those are safe (they cannot cross a line to
+    rewrite committed output). Anything else non-printable -- other C0/C1, or any
+    codepoint > 0x7e (the invisible / bidi / homoglyph classes) -- is a violation,
+    as is ANY byte written back to the pty."""
     problems = []
-    try:
-        sent = adv._obs_writeback(seq)               # pylint: disable=protected-access
-    except Exception as exc:                         # noqa: BLE001
-        return ['crash in write-back path: %r' % (exc,)]
     if sent:
         joined = b''.join(b if isinstance(b, bytes) else bytes(b) for b in sent)
         problems.append('wrote %d bytes back to pty: %r' % (len(joined), joined[:40]))
-    try:
-        text = adv._obs_render_strip(seq)            # pylint: disable=protected-access
-    except Exception as exc:                         # noqa: BLE001
-        problems.append('crash in line render: %r' % (exc,))
-        return problems
-    # secure-terminal's line mode deliberately passes through printable ASCII plus
-    # tab, newline, and the two line-LOCAL cursor controls it documents: backspace
-    # (0x08) and carriage return (0x0D). Those are safe (they cannot cross a line to
-    # rewrite committed output). Anything else non-printable -- other C0/C1, or any
-    # codepoint > 0x7e (the invisible / bidi / homoglyph classes) -- is a violation.
     smuggled = [c for c in text
                 if not (0x20 <= ord(c) <= 0x7e or c in '\t\n\r\x08')]
     if smuggled:
         problems.append('smuggled non-ASCII/control in rendered text: %r'
                         % (''.join(smuggled[:8]),))
     return problems
+
+
+def _check_invariants(seq):
+    """Feed one sequence to secure-terminal; return a list of invariant violations
+    (empty == clean). Reuses the adversarial harness observables."""
+    try:
+        sent = adv._obs_writeback(seq)               # pylint: disable=protected-access
+    except Exception as exc:                         # noqa: BLE001
+        return ['crash in write-back path: %r' % (exc,)]
+    try:
+        text = adv._obs_render_strip(seq)            # pylint: disable=protected-access
+    except Exception as exc:                         # noqa: BLE001
+        return ['crash in line render: %r' % (exc,)]
+    return _invariant_violations(sent, text)
+
+
+def negative_control():
+    """Machinery sanity check, dual to positive_control(): feed the invariant
+    predicate a SYNTHETIC VULNERABLE result -- a terminal that reflected a Device
+    Attributes reply back to the pty AND rendered an invisible + a C1 byte -- and
+    assert it is FLAGGED. If a vulnerable result is NOT flagged, the invariant
+    check cannot detect a bad terminal and every 'clean' verdict is worthless, so
+    fail loud. (The name mirrors a 'canary-incompatible' target: one that should
+    trip the canary.)"""
+    vulnerable_sent = [b'\x1b[?1;2c']            # a DA1 reply written onto input
+    vulnerable_text = 'ok\u200bevil\x9b'         # zero-width + a C1 control smuggled
+    problems = _invariant_violations(vulnerable_sent, vulnerable_text)
+    if len(problems) < 2:
+        adv.die('NEGATIVE CONTROL FAILED: the invariant check did not flag a '
+                'synthetic vulnerable result (write-back + smuggled bytes) -- the '
+                'machinery cannot detect a bad terminal; no "clean" verdict is '
+                'trustworthy.', 4)
+    _log('  negative control OK: a vulnerable result is flagged (%d violations: %s)'
+         % (len(problems), '; '.join(problems)))
 
 
 def run_invariants():
@@ -355,7 +383,18 @@ def main(argv=None):
                       help='Part A only (reference-parser self-tests).')
     mode.add_argument('--invariants-only', action='store_true',
                       help='Part B only (security invariant over sequences).')
+    parser.add_argument('--negative-control', action='store_true',
+                        help='Machinery check only: assert the invariant flags a '
+                             'synthetic vulnerable (canary-incompatible) result, '
+                             'then exit. Pure, needs no secure-terminal.')
     args = parser.parse_args(argv)
+
+    # Negative control is a pure predicate check (no terminal, no confinement); run
+    # it standalone when asked.
+    if args.negative_control:
+        negative_control()
+        _log('conformance: OK (negative control)')
+        return 0
 
     run_part_a = not args.invariants_only
     run_part_b = not args.self_tests_only
@@ -367,6 +406,7 @@ def main(argv=None):
     if run_part_b:
         adv.require_confined()
         adv.positive_control()          # fail loud if the machinery is broken
+        negative_control()              # dual control: the check can detect a bad terminal
 
     ok = True
     if run_part_a:
