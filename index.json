@@ -115,7 +115,7 @@
       ],
       "author": "Vin01",
       "source_url": "https://vin01.github.io/piptagole/escape-sequences/iterm2/rce/2024/06/16/iterm2-rce-window-title-tmux-integration.html",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260716163917/https://vin01.github.io/piptagole/escape-sequences/iterm2/rce/2024/06/16/iterm2-rce-window-title-tmux-integration.html",
       "date": "2024-06",
       "severity": "rce",
       "mechanism": "title-set-then-report",
@@ -130,7 +130,7 @@
       ],
       "author": "(kitty desktop-notification OSC injection)",
       "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2022-41322",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260314152006/https://nvd.nist.gov/vuln/detail/CVE-2022-41322",
       "date": "2022-09",
       "severity": "spoof",
       "mechanism": "osc-notification-text",
@@ -145,7 +145,7 @@
       ],
       "author": "(rxvt-unicode OSC 705 background eval)",
       "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2022-4170",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260528140514/https://nvd.nist.gov/vuln/detail/CVE-2022-4170",
       "date": "2022-11",
       "severity": "rce",
       "mechanism": "osc705-eval",
@@ -184,10 +184,12 @@
       "id": "osc8-hyperlink-phishing",
       "title": "OSC 8 hyperlink text/target mismatch (phishing)",
       "class": "osc8-hyperlink-phishing",
-      "cve": [],
+      "cve": [
+        "CVE-2022-46663"
+      ],
       "author": "(OSC 8 hyperlink spec abuse; publicly documented class)",
       "source_url": "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260709012023/https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda",
       "date": "2017",
       "severity": "spoof",
       "mechanism": "osc8-visible-vs-target",
@@ -203,7 +205,7 @@
       ],
       "author": "Vin01",
       "source_url": "https://vin01.github.io/piptagole/escape-sequences/iterm2/hyper/url-handlers/code-execution/2024/05/21/arbitrary-url-schemes-terminal-emulators.html",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260716163924/https://vin01.github.io/piptagole/escape-sequences/iterm2/hyper/url-handlers/code-execution/2024/05/21/arbitrary-url-schemes-terminal-emulators.html",
       "date": "2024-05",
       "severity": "rce",
       "mechanism": "osc8-url-scheme-arg-injection",
@@ -215,11 +217,14 @@
       "class": "parser-dos",
       "cve": [
         "CVE-2012-2738",
-        "CVE-2000-0476"
+        "CVE-2000-0476",
+        "CVE-2003-0071",
+        "CVE-2023-40216",
+        "CVE-2022-46285"
       ],
       "author": "(VTE / xterm parser DoS lineage)",
       "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2012-2738",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260316130149/https://nvd.nist.gov/vuln/detail/CVE-2012-2738",
       "date": "2012-06",
       "severity": "dos",
       "mechanism": "huge-repeat-count",
@@ -234,7 +239,7 @@
       ],
       "author": "(xterm ReGIS reporting overflow)",
       "source_url": "https://nvd.nist.gov/vuln/detail/CVE-2023-40359",
-      "archive_url": "TODO",
+      "archive_url": "http://web.archive.org/web/20260417114936/https://nvd.nist.gov/vuln/detail/CVE-2023-40359",
       "date": "2023-08",
       "severity": "dos",
       "mechanism": "regis-charset-name-overflow",
@@ -281,7 +286,12 @@
       "cve": [
         "CVE-2003-0063",
         "CVE-2003-0066",
-        "CVE-2003-0069"
+        "CVE-2003-0069",
+        "CVE-2003-0064",
+        "CVE-2003-0068",
+        "CVE-2022-46387",
+        "CVE-2023-39150",
+        "CVE-2015-8971"
       ],
       "author": "HD Moore (Digital Defense)",
       "source_url": "https://hdm.io/writing/termulation.txt",
@@ -311,7 +321,9 @@
       "title": "A window-operation variant of the echoback class: set the icon label v",
       "class": "window-ops",
       "cve": [
-        "CVE-2003-0065"
+        "CVE-2003-0065",
+        "CVE-2003-0070",
+        "CVE-2022-44702"
       ],
       "author": "HD Moore",
       "source_url": "https://hdm.io/writing/termulation.txt",

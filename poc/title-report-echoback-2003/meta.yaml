@@ -6,6 +6,11 @@ cve:
   - CVE-2003-0063   # xterm
   - CVE-2003-0066   # rxvt
   - CVE-2003-0069   # PuTTY
+  - CVE-2003-0064
+  - CVE-2003-0068
+  - CVE-2022-46387
+  - CVE-2023-39150
+  - CVE-2015-8971
 affected:
   - product: xterm
     tested: false
@@ -14,6 +19,16 @@ affected:
   - product: PuTTY
     tested: false
   - product: Eterm
+    tested: false
+  - product: "dtterm"
+    tested: false
+  - product: "Eterm"
+    tested: false
+  - product: "ConEmu"
+    versions_fixed: "221206"
+    tested: false
+  - product: "Terminology"
+    versions_fixed: "1.13.0"
     tested: false
 author: "HD Moore (Digital Defense)"
 source_url: "https://hdm.io/writing/termulation.txt"

@@ -57,6 +57,16 @@ POC_CANARY_DIR=... harness/run.py --terminal <cmd> [poc/<id> ...]
 The harness runs an always-firing positive control first and fails loud if the
 canary machinery is not working, so a green "not vulnerable" result is trustworthy.
 
+## Delivery vectors
+
+These attacks arrive as **program output** -- so the terminal must neutralize them
+whatever the source. The corpus therefore tests the terminal, not the source. Common
+delivery channels (not separate PoCs, since the payload is one of the classes above):
+a compromised or malicious program; a log/file you merely `cat` or `less`; a program
+that passes attacker-controlled bytes through UNFILTERED (e.g. kubectl object output,
+CVE-2021-25743); and LLM CLI tools that smuggle escape sequences from a prompt-injected
+model into your terminal ("Terminal DiLLMa").
+
 ## Contributing
 
 Public disclosures only. Every entry needs a source, a web-archive link, and an

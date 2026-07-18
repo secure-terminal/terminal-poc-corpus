@@ -5,10 +5,18 @@ class: parser-dos
 cve:
   - CVE-2012-2738
   - CVE-2000-0476
+  - CVE-2003-0071
+  - CVE-2023-40216
+  - CVE-2022-46285
 affected:
   - product: "GNOME VTE"
     tested: false
   - product: "xterm"
+    tested: false
+  - product: "xterm (DECUDK / XPM icon)"
+    versions_fixed: "375"
+    tested: false
+  - product: "OpenBSD wscons"
     tested: false
 author: "(VTE / xterm parser DoS lineage)"
 source_url: "https://nvd.nist.gov/vuln/detail/CVE-2012-2738"

@@ -4,10 +4,17 @@ title: "A window-operation variant of the echoback class: set the icon label v"
 class: window-ops
 cve:
   - CVE-2003-0065
+  - CVE-2003-0070
+  - CVE-2022-44702
 affected:
   - product: "uxterm"
     tested: false
   - product: "xterm"
+    tested: false
+  - product: "gnome-terminal"
+    tested: false
+  - product: "Windows Terminal (OSC 9;9 working directory)"
+    versions_fixed: "1.15"
     tested: false
 author: "HD Moore"
 source_url: "https://hdm.io/writing/termulation.txt"

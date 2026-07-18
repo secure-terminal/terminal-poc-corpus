@@ -2,9 +2,13 @@
 id: osc8-hyperlink-phishing
 title: "OSC 8 hyperlink text/target mismatch (phishing)"
 class: osc8-hyperlink-phishing
-cve: []
+cve:
+  - CVE-2022-46663
 affected:
   - product: "terminals supporting OSC 8 hyperlinks"
+    tested: false
+  - product: "less"
+    versions_fixed: "643"
     tested: false
 author: "(OSC 8 hyperlink spec abuse; publicly documented class)"
 source_url: "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda"
