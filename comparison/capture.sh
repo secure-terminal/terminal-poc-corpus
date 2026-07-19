@@ -27,13 +27,16 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o errtrace
+shopt -s inherit_errexit
+shopt -s shift_verbose
 
 here="$(dirname -- "$(readlink --canonicalize -- "$0")")"
 out="${here}/shots"
 mkdir --parents -- "${out}"
 
 "${here}/hostile-script.sh" > "${here}/crafted.bin"
-head --bytes=20000 /dev/urandom > "${here}/random.bin"
+head --bytes=20000 -- /dev/urandom > "${here}/random.bin"
 
 ## pick a free display number so a stale Xvfb from an earlier run cannot leave a
 ## half-managed server that fails to decorate windows.
@@ -49,7 +52,7 @@ xvfb_pid=''; wm_pid=''
 cleanup() {
    [ -z "${wm_pid}" ] || kill "${wm_pid}" 2>/dev/null || true
    [ -z "${xvfb_pid}" ] || kill "${xvfb_pid}" 2>/dev/null || true
-   rm -rf -- "${runtime_dir}" 2>/dev/null || true
+   rm -r -f -- "${runtime_dir}" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -106,11 +109,11 @@ clear_windows() {
 }
 
 shoot() {  ## $1=emulator  $2=case  $3=payload-file
-   local e="$1" case="$2" payload="$3" i
+   local e="$1" case="$2" payload="$3"
    command -v "$e" >/dev/null 2>&1 || { printf 'skip %s (not installed)\n' "$e"; return; }
    launch "$e" "cat '${payload}'; sleep 20" >/dev/null 2>&1 &
    local epid="$!"
-   for i in $(seq 1 60); do
+   for _ in $(seq 1 60); do
       xdotool search --onlyvisible --name '.*' >/dev/null 2>&1 && break
       sleep 0.25
    done
@@ -134,7 +137,7 @@ if [ -n "${ST_REPO:-}" ] && [ -f "${st_bin}" ]; then
       PYTHONPATH="${st_pkg}" python3 "${st_bin}" --new-instance --mode strip \
          -- bash -c "cat '${here}/${case}.bin'; sleep 30" >/dev/null 2>&1 &
       epid="$!"
-      for i in $(seq 1 60); do
+      for _ in $(seq 1 60); do
          xdotool search --onlyvisible --name '.*[Ss]ecure.*' >/dev/null 2>&1 && break
          sleep 0.25
       done
