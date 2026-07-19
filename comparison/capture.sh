@@ -35,7 +35,13 @@ mkdir --parents -- "${out}"
 "${here}/hostile-script.sh" > "${here}/crafted.bin"
 head --bytes=20000 /dev/urandom > "${here}/random.bin"
 
-export DISPLAY=":101"
+## pick a free display number so a stale Xvfb from an earlier run cannot leave a
+## half-managed server that fails to decorate windows.
+display_num=101
+while [ -e "/tmp/.X11-unix/X${display_num}" ] && [ "${display_num}" -lt 160 ]; do
+   display_num=$(( display_num + 1 ))
+done
+export DISPLAY=":${display_num}"
 runtime_dir="$(mktemp --directory)"
 export XDG_RUNTIME_DIR="${runtime_dir}"
 
@@ -47,15 +53,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-## A generous virtual screen so a normal-sized, decorated window has room around
-## it; we screenshot only the window (with its frame), not the whole screen.
+## A generous virtual screen so a normal-sized, decorated window has room around it.
 Xvfb "${DISPLAY}" -screen 0 1400x900x24 >/dev/null 2>&1 &
 xvfb_pid="$!"
 sleep 2
-## openbox draws a title bar on every window it manages.
+## openbox draws a REAL title bar on every window it manages.
 openbox >/dev/null 2>&1 &
 wm_pid="$!"
 sleep 1
+## paint the root a colour no terminal uses, so a screenshot of the whole root
+## (where the title bars are genuinely rendered) can be trimmed down to exactly the
+## decorated window -- nothing faked, just cropped to what the WM drew.
+CHROMA='#ff00ff'
+xsetroot -solid "${CHROMA}" 2>/dev/null || true
 
 ## NOTE: on a hardened Kicksecure/Whonix system the permission-hardener may strip
 ## the exec bit from urxvt (historically setuid for utmp). Restore it for the test:
@@ -77,14 +87,15 @@ launch() {  ## $1=emulator  $2=command-string; a normal ~90x28 window where hono
    esac
 }
 
-capture_window() {  ## $1=output-path -- screenshot just the active window + its frame
-   local dest="$1" wid
-   wid="$(xdotool getactivewindow 2>/dev/null || true)"
-   [ -n "${wid}" ] || wid="$(xdotool search --onlyvisible --name '.*' 2>/dev/null | tail -1 || true)"
-   [ -n "${wid}" ] || return
-   ## -frame includes the window-manager title bar + border; only the window is
-   ## captured, so there is no desktop background around it.
-   import -frame -window "${wid}" "${dest}" 2>/dev/null || true
+capture_window() {  ## $1=output-path -- the REAL decorated window (title bar + client)
+   local dest="$1" tmp
+   xsetroot -solid "${CHROMA}" 2>/dev/null || true
+   tmp="$(mktemp --suffix=.png)"
+   import -window root "${tmp}" 2>/dev/null || { rm -f -- "${tmp}"; return; }
+   ## trim the chroma desktop, leaving the decorated window (title bar included)
+   convert "${tmp}" -bordercolor "${CHROMA}" -border 1 -trim +repage "${dest}" \
+      2>/dev/null || cp -- "${tmp}" "${dest}"
+   rm -f -- "${tmp}"
 }
 
 clear_windows() {
