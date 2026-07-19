@@ -33,7 +33,7 @@ window manager, feeds both payloads, and screenshots the result to `shots/`.
 sudo apt install --no-install-recommends \
   xterm rxvt-unicode stterm konsole xfce4-terminal mate-terminal \
   lxterminal qterminal alacritty kitty \
-  xvfb matchbox-window-manager x11-utils xdotool imagemagick
+  xvfb openbox x11-xserver-utils xdotool imagemagick
 
 # then capture (point ST_REPO at a secure-terminal checkout to include it):
 ST_REPO=/path/to/secure-terminal ./capture.sh
