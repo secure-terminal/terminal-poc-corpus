@@ -25,20 +25,23 @@ secure-terminal, and see what each one does.
 
 ## Run the capture
 
-`capture.sh` drives each emulator headless as a client of a nested `weston`
-Wayland compositor (run on the host X server via weston's x11-backend, with
-Xwayland for the X11 emulators), so weston draws the same real server-side title
-bar on every window. It feeds both payloads and screenshots the result to
-`shots/`.
+`capture.sh` drives each emulator headless as a client of a nested `labwc`
+compositor (the wlroots compositor LXQt ships), run on the host X server via its
+x11 backend, with the Clearlooks Openbox theme. labwc draws the same real,
+themed server-side title bar on every window -- X11 (Xwayland) and toolkit alike
+-- exactly as on an LXQt desktop. It feeds both payloads and screenshots the
+result to `shots/`.
 
 ```bash
 # install the emulators you want to test (this repo installs nothing itself):
 sudo apt install --no-install-recommends \
   xterm rxvt-unicode stterm konsole xfce4-terminal mate-terminal \
   lxterminal qterminal alacritty kitty \
-  weston xwayland xdotool x11-xserver-utils imagemagick
+  labwc openbox xdotool wmctrl x11-utils x11-xserver-utils imagemagick
+# (the openbox package ships the Clearlooks window theme labwc reads; capture.sh
+#  sets THEME=Clearlooks -- change it there to use another installed Openbox theme.)
 
-# then capture, on a machine with an X server on $DISPLAY (weston nests in it;
+# then capture, on a machine with an X server on $DISPLAY (labwc nests in it;
 # point ST_REPO at a secure-terminal checkout to include it):
 ST_REPO=/path/to/secure-terminal ./capture.sh
 ```
