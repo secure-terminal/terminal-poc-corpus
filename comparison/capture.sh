@@ -69,6 +69,24 @@ cat > "${HOME}/.strc" <<'RC'
 PS1='user@host:~$ '
 RC
 
+## Install secure-terminal's icon into the session icon theme, so labwc -- which
+## resolves a window's title-bar icon by its app-id (WM_CLASS) through the icon
+## theme, NOT via _NET_WM_ICON -- shows the real logo in secure-terminal's title
+## bar, exactly as on a system where the package (and its icon) is installed.
+export XDG_DATA_HOME="${runtime_dir}/data"
+st_icon="${ST_REPO:-}/usr/share/icons/hicolor/scalable/apps/secure-terminal.svg"
+if [ -n "${ST_REPO:-}" ] && [ -f "${st_icon}" ]; then
+   th="${XDG_DATA_HOME}/icons/hicolor"
+   mkdir --parents -- "${th}/scalable/apps"
+   cp -- "${st_icon}" "${th}/scalable/apps/secure-terminal.svg"
+   for sz in 16 22 24 32 48 64 128 256; do
+      mkdir --parents -- "${th}/${sz}x${sz}/apps"
+      convert -background none -resize "${sz}x${sz}" "${st_icon}" \
+         "${th}/${sz}x${sz}/apps/secure-terminal.png" 2>/dev/null || true
+   done
+   gtk-update-icon-cache -f "${th}" 2>/dev/null || true
+fi
+
 ## labwc config: the Clearlooks theme, server-side decorations.
 cat > "${XDG_CONFIG_HOME}/labwc/rc.xml" <<XML
 <?xml version="1.0"?>
