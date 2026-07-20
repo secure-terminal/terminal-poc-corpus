@@ -36,7 +36,7 @@ bar on every window. It feeds both payloads and screenshots the result to
 sudo apt install --no-install-recommends \
   xterm rxvt-unicode stterm konsole xfce4-terminal mate-terminal \
   lxterminal qterminal alacritty kitty \
-  weston xwayland xdotool imagemagick
+  weston xwayland xdotool x11-xserver-utils imagemagick
 
 # then capture, on a machine with an X server on $DISPLAY (weston nests in it;
 # point ST_REPO at a secure-terminal checkout to include it):

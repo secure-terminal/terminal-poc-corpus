@@ -6,23 +6,31 @@
 ## AI-Assisted
 
 ## Reproduce the secure-terminal "hostile byte streams" comparison, headless.
-## For each installed Debian terminal emulator it feeds two payloads and screen-
-## shots the DECORATED window (title bar included, no desktop background), so the
-## emulator and any title hijack are both legible:
-##   Case A (random) : head -c 20000 /dev/urandom  -- genuine random data.
-##   Case B (crafted): ./hostile-script.sh          -- an OSC-0 title hijack plus a
-##                     stuck colour and a DEC line-drawing charset shift, none reset.
+## For each installed Debian terminal emulator it starts an interactive shell,
+## TYPES a command into it (so the shot shows the prompt, the command, its output
+## and the state of the prompt AFTER it -- what a user actually sees, and how to
+## reproduce it), and screenshots the DECORATED window (title bar included, no
+## desktop background):
+##   Case A (random) : head -c 1200 /dev/urandom  -- genuine random data, sized so
+##                     the returned prompt stays visible below the garble.
+##   Case B (crafted): cat crafted.log            -- an OSC-0 title hijack plus a
+##                     stuck colour and a DEC line-drawing charset shift, none reset
+##                     (crafted.log is hostile-script.sh's output).
 ## secure-terminal (its real GUI, from ST_REPO) is captured the same way for a
 ## like-for-like shot. Output PNGs go to ./shots/.
+##
+## The prompt is a fixed "user@host:~$" -- deliberately CONTRASTING with the
+## root@prod-db the OSC-0 escape forces into the title bar: the prompt shows who
+## you really are, the hijacked title lies.
 ##
 ## Decorations come from a real Wayland compositor: weston runs nested (its
 ## x11-backend puts one window on the host X server) and draws a uniform
 ## server-side title bar on EVERY window it manages. The minimalist emulators
 ## (st, urxvt, alacritty, kitty) that a bare X11 WM left undecorated are launched
 ## as Xwayland clients (forced X11 via the toolkit backend), so weston's xwm
-## draws the same real title bar on all ten -- and an OSC-0 title hijack shows up
-## in that bar exactly as it would on a normal desktop. Nothing is painted on;
-## the title bar is the compositor's own decoration, captured as rendered.
+## draws the same real title bar on all -- and an OSC-0 title hijack shows up in
+## that bar exactly as it would on a normal desktop. Nothing is painted on; the
+## title bar is the compositor's own decoration, captured as rendered.
 ##
 ## Needs: an X server on $DISPLAY, weston (>=13) with Xwayland, xdotool,
 ## ImageMagick (import/convert), and whichever emulators you want to test.
@@ -32,6 +40,11 @@
 ## Usage:
 ##   ST_REPO=/path/to/secure-terminal/checkout ./capture.sh
 ## Deterministic Case B; Case A is random by nature (that is the point).
+##
+## NOTE: on a hardened Kicksecure/Whonix system the permission-hardener strips the
+## exec bit from urxvt (historically setuid for utmp), so it fails with
+## "env: '_urxvt_': Permission denied" and maps no window. Restore it first:
+##   sudo chmod a+x /usr/bin/urxvt
 
 set -o errexit
 set -o nounset
@@ -46,9 +59,9 @@ mkdir --parents -- "${out}"
 
 host_display="${DISPLAY:-:0}"
 CHROMA='#ff00ff'
-## the OSC-0 title hostile-script.sh sets; used to gate qterminal's capture on a
-## real payload render (see shoot()). Keep in sync with hostile-script.sh.
-marker='root@prod-db:~#'
+## Case A byte count: small enough that the random garble does not fill the whole
+## window, so the shell's returned prompt stays visible below it.
+RANDOM_BYTES=1200
 
 runtime_dir="$(mktemp --directory)"
 export XDG_RUNTIME_DIR="${runtime_dir}"
@@ -59,10 +72,22 @@ export HOME="${runtime_dir}/home"
 export XDG_CONFIG_HOME="${runtime_dir}/config"
 mkdir --parents -- "${HOME}" "${XDG_CONFIG_HOME}"
 
-## write the payloads under the space-free runtime dir (a repo checkout path may
-## contain spaces, which would break the nested command strings below).
-"${here}/hostile-script.sh" > "${runtime_dir}/crafted.bin"
-head --bytes=20000 -- /dev/urandom > "${runtime_dir}/random.bin"
+## the crafted hostile log, cat'd from the shell (Case B). In HOME so the typed
+## "cat crafted.log" is short and reproducible.
+"${here}/hostile-script.sh" > "${HOME}/crafted.log"
+## a fixed, legible, reproducible interactive prompt; $HOME expands at runtime.
+cat > "${HOME}/.strc" <<'RC'
+PS1='user@host:~$ '
+cd "$HOME"
+RC
+
+## the command TYPED into each terminal, per case.
+cmd_for() {  ## $1=case
+   case "$1" in
+      crafted) printf 'cat crafted.log' ;;
+      random)  printf 'head -c %s /dev/urandom' "${RANDOM_BYTES}" ;;
+   esac
+}
 
 ## weston config: a chroma desktop to trim against, no panel, no animation, a
 ## real title bar (weston's default decoration) on every managed window.
@@ -72,6 +97,8 @@ xwayland=true
 idle-time=0
 require-input=false
 renderer=pixman
+[keyboard]
+keymap_layout=us
 [shell]
 background-color=0xff${CHROMA#\#}
 panel-position=none
@@ -94,7 +121,7 @@ cleanup() {
 ## A FRESH compositor per emulator: a heavy toolkit (e.g. konsole) can abort a
 ## nested software-rendered weston, so isolate each one -- a crash costs that
 ## emulator's shots, not the whole run. Nested on the host X server: one
-## 1400x900 window holds the compositor; Xwayland is spawned for the X11 clients.
+## 1700x1000 window holds the compositor; Xwayland is spawned for the X11 clients.
 start_weston() {
    : > "${weston_log}"
    DISPLAY="${host_display}" weston \
@@ -129,24 +156,43 @@ stop_weston() {
 }
 trap cleanup EXIT
 
-## launch an emulator as an X11 (Xwayland) client so weston decorates it. Each
-## toolkit is pinned to its X11 backend; WAYLAND_DISPLAY is dropped so a
-## Wayland-capable emulator does not draw its own client-side decoration instead.
-launch() {  ## $1=emulator  $2=command-string
-   local e="$1" cmd="$2"
+## start an emulator running an INTERACTIVE shell (so its prompt is visible) as an
+## X11 (Xwayland) client, so weston decorates it. Each toolkit is pinned to its X11
+## backend; WAYLAND_DISPLAY is dropped so a Wayland-capable emulator does not draw
+## its own client-side decoration instead. The command is TYPED in later (inject).
+launch() {  ## $1=emulator
+   local e="$1"
    local base=(env --unset=WAYLAND_DISPLAY "DISPLAY=${xwl_display}")
+   local sh=(bash --rcfile "${HOME}/.strc" -i)
    case "$e" in
-      xterm)          "${base[@]}" xterm -geometry 90x28 -fa 'Monospace' -fs 11 -e bash -c "${cmd}" ;;
-      urxvt)          "${base[@]}" urxvt -geometry 90x28 -fn 'xft:Monospace:size=11' -e bash -c "${cmd}" ;;
-      st)             "${base[@]}" st -g 90x28 -f 'Monospace:size=11' -e bash -c "${cmd}" ;;
-      konsole)        "${base[@]}" QT_QPA_PLATFORM=xcb konsole --nofork -e bash -c "${cmd}" ;;
-      qterminal)      "${base[@]}" QT_QPA_PLATFORM=xcb qterminal -e bash -c "${cmd}" ;;
-      xfce4-terminal) "${base[@]}" GDK_BACKEND=x11 xfce4-terminal --disable-server --geometry 90x28 -x bash -c "${cmd}" ;;
-      mate-terminal)  "${base[@]}" GDK_BACKEND=x11 mate-terminal --disable-factory --geometry 90x28 -x bash -c "${cmd}" ;;
-      lxterminal)     "${base[@]}" GDK_BACKEND=x11 dbus-run-session -- lxterminal --geometry 90x28 -e "bash -c '${cmd}'" ;;
-      alacritty)      "${base[@]}" WINIT_UNIX_BACKEND=x11 alacritty -o 'window.dimensions.columns=90' -o 'window.dimensions.lines=28' -o 'font.size=11' -e bash -c "${cmd}" ;;
-      kitty)          "${base[@]}" KITTY_ENABLE_WAYLAND=0 kitty -o 'remember_window_size=no' -o 'initial_window_width=760' -o 'initial_window_height=460' -o 'font_size=11' bash -c "${cmd}" ;;
+      xterm)          "${base[@]}" xterm -geometry 90x28 -fa 'Monospace' -fs 11 -e "${sh[@]}" ;;
+      urxvt)          "${base[@]}" urxvt -geometry 90x28 -fn 'xft:Monospace:size=11' -e "${sh[@]}" ;;
+      st)             "${base[@]}" st -g 90x28 -f 'Monospace:size=11' -e "${sh[@]}" ;;
+      konsole)        "${base[@]}" QT_QPA_PLATFORM=xcb konsole --nofork -e "${sh[@]}" ;;
+      qterminal)      "${base[@]}" QT_QPA_PLATFORM=xcb qterminal -e "${sh[@]}" ;;
+      xfce4-terminal) "${base[@]}" GDK_BACKEND=x11 xfce4-terminal --disable-server --geometry 90x28 -x "${sh[@]}" ;;
+      mate-terminal)  "${base[@]}" GDK_BACKEND=x11 mate-terminal --disable-factory --geometry 90x28 -x "${sh[@]}" ;;
+      alacritty)      "${base[@]}" WINIT_UNIX_BACKEND=x11 alacritty -o 'window.dimensions.columns=90' -o 'window.dimensions.lines=28' -o 'font.size=11' -e "${sh[@]}" ;;
+      kitty)          "${base[@]}" KITTY_ENABLE_WAYLAND=0 kitty -o 'remember_window_size=no' -o 'initial_window_width=760' -o 'initial_window_height=460' -o 'font_size=11' "${sh[@]}" ;;
    esac
+}
+
+## type a command into the focused terminal window and run it, as if a user did.
+inject() {  ## $1=window-id  $2=command
+   local wid="$1" cmd="$2"
+   DISPLAY="${xwl_display}" xdotool windowactivate --sync "${wid}" 2>/dev/null \
+      || DISPLAY="${xwl_display}" xdotool windowfocus "${wid}" 2>/dev/null || true
+   ## Fix the keymap so xdotool type does not mangle symbols (e.g. '/' -> '&',
+   ## turning /dev/urandom into &dev&urandom). Two layers are BOTH needed:
+   ## weston.ini's [keyboard] keymap_layout reaches XKB toolkits (Qt) but NOT
+   ## xterm, which reads the X11 CORE keyboard map -- and that only setxkbmap
+   ## sets. It must run AFTER the emulator has mapped (a connecting Xwayland
+   ## client resets the server keymap), so re-apply it here, right before typing.
+   DISPLAY="${xwl_display}" setxkbmap us 2>/dev/null || true
+   sleep 0.4
+   DISPLAY="${xwl_display}" xdotool type --delay 45 -- "${cmd}"
+   sleep 0.3
+   DISPLAY="${xwl_display}" xdotool key --clearmodifiers Return
 }
 
 ## capture weston's own window (the whole compositor) off the host X server, then
@@ -193,17 +239,12 @@ clear_windows() {
    done
 }
 
-## wait until some NEW window's title is the OSC-0 marker: proof the crafted
-## payload actually ran and the title hijack landed. rc 0 if seen, 1 on timeout.
-wait_for_marker() {
-   local _ cur nm
-   for _ in $(seq 1 60); do
-      for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do
-         case "${base_wids}" in *" ${cur} "*) continue ;; esac
-         nm="$(DISPLAY="${xwl_display}" xdotool getwindowname "${cur}" 2>/dev/null || true)"
-         if [ "${nm}" = "${marker}" ]; then return 0; fi
-      done
-      sleep 0.25
+## the FIRST new (non-baseline) window weston mapped for the emulator.
+first_window() {
+   local cur
+   for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do
+      case "${base_wids}" in *" ${cur} "*) continue ;; esac
+      printf '%s' "${cur}"; return 0
    done
    return 1
 }
@@ -225,66 +266,51 @@ origin_window() {
    printf '%s' "${wid}"
 }
 
-shoot() {  ## $1=emulator  $2=case  $3=payload-file; runs under the CURRENT weston
-   local e="$1" case="$2" payload="$3" wid='' cur ww
-   launch "$e" "cat '${payload}'; sleep 30" >/dev/null 2>&1 &
-   local epid="$!"
-
-   ## qterminal needs its own path: it ignores -geometry (opens filling the
-   ## output), maps a decorated top-level plus a nested surface, and is slow to
-   ## run its -e command under software-rendered weston. Capturing the generic
-   ## "first new window" after a fixed sleep races the startup and can grab the
-   ## pre-payload default window (empty screen, title still "Shell No. 1"). So:
-   ## gate on the OSC-0 marker title (crafted) to prove the payload rendered,
-   ## take the decorated 0,0 top-level, and resize it to match the others.
-   if [ "$e" = qterminal ]; then
-      if [ "${case}" = crafted ]; then
-         wait_for_marker || printf 'warn %s.%s: marker title never appeared\n' "${e}" "${case}"
-      else
-         sleep 5
-      fi
-      wid="$(origin_window)"
-      if [ -n "${wid}" ]; then
-         DISPLAY="${xwl_display}" xdotool windowsize "${wid}" 760 480 2>/dev/null || true
-         sleep 2
-         capture_window "${out}/${e}.${case}.png" "${wid}" \
-            || printf 'warn %s.%s: screenshot failed\n' "${e}" "${case}"
-      else
-         printf 'warn %s.%s: window never appeared, no shot\n' "${e}" "${case}"
-      fi
-      clear_windows
-      kill "${epid}" 2>/dev/null || true
-      sleep 1
-      if [ -n "${wid}" ]; then return 0; else return 1; fi
-   fi
-
+## wait (up to ~20s) for the emulator's window to appear, returning its id. For
+## qterminal the decorated 0,0 top-level; for the rest the first new window.
+find_window() {  ## $1=emulator
+   local e="$1" wid='' _
    for _ in $(seq 1 80); do
-      kill -0 "${wm_pid}" 2>/dev/null || { printf 'warn %s.%s: weston died\n' "${e}" "${case}"; return 1; }
-      for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do
-         case "${base_wids}" in *" ${cur} "*) : ;; *) wid="${cur}"; break ;; esac
-      done
-      [ -n "${wid}" ] && break
+      kill -0 "${wm_pid}" 2>/dev/null || return 1
+      if [ "$e" = qterminal ]; then wid="$(origin_window)"; else wid="$(first_window || true)"; fi
+      [ -n "${wid}" ] && { printf '%s' "${wid}"; return 0; }
       sleep 0.25
    done
-   if [ -n "${wid}" ]; then
-      sleep 3                             # let the window paint + set its title
-      ## random bytes can carry a window-manipulation escape (CSI ... t) that a
-      ## terminal honours, shrinking the window to a few pixels; restore a sane
-      ## size so its (still corrupted) screen is legible in the shot.
-      ww="$(DISPLAY="${xwl_display}" xdotool getwindowgeometry --shell "${wid}" 2>/dev/null | sed -n 's/^WIDTH=//p' || true)"
-      if [ -n "${ww}" ] && [ "${ww}" -lt 300 ]; then
-         DISPLAY="${xwl_display}" xdotool windowsize "${wid}" 760 460 2>/dev/null || true
-         sleep 1.5
-      fi
-      capture_window "${out}/${e}.${case}.png" "${wid}" \
-         || printf 'warn %s.%s: screenshot failed\n' "${e}" "${case}"
-   else
+   return 1
+}
+
+shoot() {  ## $1=emulator  $2=case; runs under the CURRENT weston
+   local e="$1" case="$2" wid='' ww
+   launch "$e" >/dev/null 2>&1 &
+   local epid="$!"
+   wid="$(find_window "$e" || true)"
+   if [ -z "${wid}" ]; then
       printf 'warn %s.%s: window never appeared, no shot\n' "${e}" "${case}"
+      clear_windows; kill "${epid}" 2>/dev/null || true; sleep 1
+      return 1
    fi
+   ## qterminal ignores -geometry (opens filling the output); resize to match the
+   ## others so its shot is comparable.
+   if [ "$e" = qterminal ]; then
+      DISPLAY="${xwl_display}" xdotool windowsize "${wid}" 760 480 2>/dev/null || true
+      sleep 1
+   fi
+   sleep 2                                  # let the shell paint its first prompt
+   inject "${wid}" "$(cmd_for "${case}")"
+   sleep 3                                  # command runs; output + next prompt paint
+   ## random bytes can carry a window-manipulation escape (CSI ... t) that a
+   ## terminal honours, shrinking the window to a few pixels; restore a sane size
+   ## so its (still corrupted) screen is legible in the shot.
+   ww="$(DISPLAY="${xwl_display}" xdotool getwindowgeometry --shell "${wid}" 2>/dev/null | sed -n 's/^WIDTH=//p' || true)"
+   if [ -n "${ww}" ] && [ "${ww}" -lt 300 ]; then
+      DISPLAY="${xwl_display}" xdotool windowsize "${wid}" 760 480 2>/dev/null || true
+      sleep 1.5
+   fi
+   capture_window "${out}/${e}.${case}.png" "${wid}" \
+      || printf 'warn %s.%s: screenshot failed\n' "${e}" "${case}"
    clear_windows
    kill "${epid}" 2>/dev/null || true
    sleep 1
-   [ -n "${wid}" ]
 }
 
 ## lxterminal is intentionally omitted: it maps no window as an Xwayland client
@@ -296,11 +322,10 @@ for e in xterm urxvt st konsole xfce4-terminal mate-terminal qterminal alacritty
       printf 'warn %s: weston did not start; log:\n' "$e"; tail -4 "${weston_log}"
       stop_weston; continue
    fi
-   ok=1
-   shoot "$e" crafted "${runtime_dir}/crafted.bin" || ok=0
-   shoot "$e" random  "${runtime_dir}/random.bin" || ok=0
+   shoot "$e" crafted || true
+   shoot "$e" random  || true
    stop_weston
-   if [ "${ok}" -eq 1 ]; then printf 'captured %s\n' "$e"; else printf 'incomplete %s\n' "$e"; fi
+   printf 'captured %s\n' "$e"
 done
 
 ## secure-terminal (its real GUI) under the same compositor, forced onto Xwayland
@@ -311,18 +336,17 @@ if [ -n "${ST_REPO:-}" ] && [ -f "${st_bin}" ] && start_weston; then
    for case in crafted random; do
       env --unset=WAYLAND_DISPLAY "DISPLAY=${xwl_display}" QT_QPA_PLATFORM=xcb \
          PYTHONPATH="${st_pkg}" python3 "${st_bin}" --new-instance --mode strip \
-         -- bash -c "cat '${runtime_dir}/${case}.bin'; sleep 30" >/dev/null 2>&1 &
+         -- bash --rcfile "${HOME}/.strc" -i >/dev/null 2>&1 &
       epid="$!"
-      stwid=''
-      for _ in $(seq 1 80); do
-         for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do
-            case "${base_wids}" in *" ${cur} "*) : ;; *) stwid="${cur}"; break ;; esac
-         done
-         [ -n "${stwid}" ] && break
-         sleep 0.25
-      done
-      sleep 3
-      capture_window "${out}/secure-terminal.${case}.png" "${stwid}"
+      stwid="$(find_window secure-terminal || true)"
+      if [ -n "${stwid}" ]; then
+         sleep 2
+         inject "${stwid}" "$(cmd_for "${case}")"
+         sleep 3
+         capture_window "${out}/secure-terminal.${case}.png" "${stwid}"
+      else
+         printf 'warn secure-terminal.%s: window never appeared\n' "${case}"
+      fi
       clear_windows
       kill "${epid}" 2>/dev/null || true
       sleep 1.5
