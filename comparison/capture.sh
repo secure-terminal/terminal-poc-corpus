@@ -46,6 +46,9 @@ mkdir --parents -- "${out}"
 
 host_display="${DISPLAY:-:0}"
 CHROMA='#ff00ff'
+## the OSC-0 title hostile-script.sh sets; used to gate qterminal's capture on a
+## real payload render (see shoot()). Keep in sync with hostile-script.sh.
+marker='root@prod-db:~#'
 
 runtime_dir="$(mktemp --directory)"
 export XDG_RUNTIME_DIR="${runtime_dir}"
@@ -190,10 +193,71 @@ clear_windows() {
    done
 }
 
+## wait until some NEW window's title is the OSC-0 marker: proof the crafted
+## payload actually ran and the title hijack landed. rc 0 if seen, 1 on timeout.
+wait_for_marker() {
+   local _ cur nm
+   for _ in $(seq 1 60); do
+      for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do
+         case "${base_wids}" in *" ${cur} "*) continue ;; esac
+         nm="$(DISPLAY="${xwl_display}" xdotool getwindowname "${cur}" 2>/dev/null || true)"
+         if [ "${nm}" = "${marker}" ]; then return 0; fi
+      done
+      sleep 0.25
+   done
+   return 1
+}
+
+## the largest NEW window weston placed at the output origin (0,0). qterminal
+## opens filling the output and maps BOTH a decorated top-level at 0,0 and a
+## nested, undecorated inner surface at an offset; this returns the decorated one.
+origin_window() {
+   local cur wid='' best=-1 X Y WIDTH HEIGHT area
+   for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do
+      case "${base_wids}" in *" ${cur} "*) continue ;; esac
+      X=''; Y=''; WIDTH=''; HEIGHT=''
+      eval "$(DISPLAY="${xwl_display}" xdotool getwindowgeometry --shell "${cur}" 2>/dev/null \
+         | grep -E '^(X|Y|WIDTH|HEIGHT)=' || true)"
+      [ "${X:-9}" = 0 ] && [ "${Y:-9}" = 0 ] || continue
+      area=$(( ${WIDTH:-0} * ${HEIGHT:-0} ))
+      if [ "${area}" -gt "${best}" ]; then best="${area}"; wid="${cur}"; fi
+   done
+   printf '%s' "${wid}"
+}
+
 shoot() {  ## $1=emulator  $2=case  $3=payload-file; runs under the CURRENT weston
    local e="$1" case="$2" payload="$3" wid='' cur ww
    launch "$e" "cat '${payload}'; sleep 30" >/dev/null 2>&1 &
    local epid="$!"
+
+   ## qterminal needs its own path: it ignores -geometry (opens filling the
+   ## output), maps a decorated top-level plus a nested surface, and is slow to
+   ## run its -e command under software-rendered weston. Capturing the generic
+   ## "first new window" after a fixed sleep races the startup and can grab the
+   ## pre-payload default window (empty screen, title still "Shell No. 1"). So:
+   ## gate on the OSC-0 marker title (crafted) to prove the payload rendered,
+   ## take the decorated 0,0 top-level, and resize it to match the others.
+   if [ "$e" = qterminal ]; then
+      if [ "${case}" = crafted ]; then
+         wait_for_marker || printf 'warn %s.%s: marker title never appeared\n' "${e}" "${case}"
+      else
+         sleep 5
+      fi
+      wid="$(origin_window)"
+      if [ -n "${wid}" ]; then
+         DISPLAY="${xwl_display}" xdotool windowsize "${wid}" 760 480 2>/dev/null || true
+         sleep 2
+         capture_window "${out}/${e}.${case}.png" "${wid}" \
+            || printf 'warn %s.%s: screenshot failed\n' "${e}" "${case}"
+      else
+         printf 'warn %s.%s: window never appeared, no shot\n' "${e}" "${case}"
+      fi
+      clear_windows
+      kill "${epid}" 2>/dev/null || true
+      sleep 1
+      if [ -n "${wid}" ]; then return 0; else return 1; fi
+   fi
+
    for _ in $(seq 1 80); do
       kill -0 "${wm_pid}" 2>/dev/null || { printf 'warn %s.%s: weston died\n' "${e}" "${case}"; return 1; }
       for cur in $(DISPLAY="${xwl_display}" xdotool search --onlyvisible '' 2>/dev/null || true); do

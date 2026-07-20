@@ -25,17 +25,21 @@ secure-terminal, and see what each one does.
 
 ## Run the capture
 
-`capture.sh` drives each emulator headless under `Xvfb` + a titlebar-drawing
-window manager, feeds both payloads, and screenshots the result to `shots/`.
+`capture.sh` drives each emulator headless as a client of a nested `weston`
+Wayland compositor (run on the host X server via weston's x11-backend, with
+Xwayland for the X11 emulators), so weston draws the same real server-side title
+bar on every window. It feeds both payloads and screenshots the result to
+`shots/`.
 
 ```bash
 # install the emulators you want to test (this repo installs nothing itself):
 sudo apt install --no-install-recommends \
   xterm rxvt-unicode stterm konsole xfce4-terminal mate-terminal \
   lxterminal qterminal alacritty kitty \
-  xvfb openbox x11-xserver-utils xdotool imagemagick
+  weston xwayland xdotool imagemagick
 
-# then capture (point ST_REPO at a secure-terminal checkout to include it):
+# then capture, on a machine with an X server on $DISPLAY (weston nests in it;
+# point ST_REPO at a secure-terminal checkout to include it):
 ST_REPO=/path/to/secure-terminal ./capture.sh
 ```
 
