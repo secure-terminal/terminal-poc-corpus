@@ -75,11 +75,17 @@ mkdir --parents -- "${HOME}" "${XDG_CONFIG_HOME}"
 ## the crafted hostile log, cat'd from the shell (Case B). In HOME so the typed
 ## "cat crafted.log" is short and reproducible.
 "${here}/hostile-script.sh" > "${HOME}/crafted.log"
-## a fixed, legible, reproducible interactive prompt; $HOME expands at runtime.
+## a fixed, legible, reproducible interactive prompt.
 cat > "${HOME}/.strc" <<'RC'
 PS1='user@host:~$ '
-cd "$HOME"
 RC
+
+## Launch every emulator FROM ${HOME} so the shell's cwd holds crafted.log and a
+## plain "cat crafted.log" finds it. Do NOT 'cd "$HOME"' in the rcfile instead:
+## st's bash sees a different $HOME (the box's real home), so that cd moved it
+## away and "cat crafted.log" failed. All paths below are absolute, so changing
+## cwd here is safe; the emulators (and the ST block) inherit it.
+cd "${HOME}"
 
 ## the command TYPED into each terminal, per case.
 cmd_for() {  ## $1=case
