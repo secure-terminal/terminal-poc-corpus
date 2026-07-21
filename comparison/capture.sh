@@ -16,6 +16,11 @@
 ##                     stuck colour and a DEC line-drawing charset shift, none reset
 ##                     (crafted.log is a copy of the committed hostile-log.txt, so
 ##                     the shots use the exact bytes shipped in the repo).
+##   Case C (homoglyph): cat homoglyph.txt          -- an install one-liner whose
+##                     domain carries a Cyrillic look-alike (U+0430 for Latin a), so
+##                     a traditional terminal shows a clean "example.com". secure-
+##                     terminal is shot in TWO modes: strip (look-alike -> "_") and
+##                     detail (<U+0430 CYRILLIC SMALL LETTER A>).
 ## secure-terminal (its real GUI, from ST_REPO) is captured the same way.
 ## Output PNGs go to ./shots/.
 ##
@@ -66,6 +71,7 @@ export XDG_CONFIG_HOME="${runtime_dir}/config"
 mkdir --parents -- "${HOME}" "${XDG_CONFIG_HOME}/labwc"
 
 cp -- "${here}/hostile-log.txt" "${HOME}/crafted.log"
+cp -- "${here}/homoglyph-log.txt" "${HOME}/homoglyph.txt"
 cat > "${HOME}/.strc" <<'RC'
 PS1='user@host:~$ '
 RC
@@ -103,8 +109,9 @@ cd "${HOME}"
 
 cmd_for() {  ## $1=case
    case "$1" in
-      crafted) printf 'cat crafted.log' ;;
-      random)  printf 'head -c %s /dev/urandom' "${RANDOM_BYTES}" ;;
+      crafted)   printf 'cat crafted.log' ;;
+      random)    printf 'head -c %s /dev/urandom' "${RANDOM_BYTES}" ;;
+      homoglyph) printf 'cat homoglyph.txt' ;;
    esac
 }
 
@@ -275,29 +282,43 @@ if ! start_labwc; then
 fi
 
 ## lxterminal is omitted: its single-instance startup maps no window headless.
-for e in xterm urxvt st konsole xfce4-terminal mate-terminal qterminal alacritty kitty; do
+## TERMINALS can be overridden to trial a subset (e.g. TERMINALS='xterm st').
+TERMINALS="${TERMINALS:-xterm urxvt st konsole xfce4-terminal mate-terminal qterminal alacritty kitty}"
+for e in ${TERMINALS}; do
    command -v "$e" >/dev/null 2>&1 || { printf 'skip %s (not installed)\n' "$e"; continue; }
-   shoot "$e" crafted || true
-   shoot "$e" random  || true
+   shoot "$e" crafted   || true
+   shoot "$e" random    || true
+   shoot "$e" homoglyph || true
    printf 'captured %s\n' "$e"
 done
 
 st_bin="${ST_REPO:-}/usr/bin/secure-terminal"
 st_pkg="${ST_REPO:-}/usr/lib/python3/dist-packages"
 if [ -n "${ST_REPO:-}" ] && [ -f "${st_bin}" ]; then
-   for case in crafted random; do
+   ## Each entry is "<case> <mode> <output-suffix>". secure-terminal is captured in
+   ## the display mode that matters for each case: strip for the byte-stream cases,
+   ## and BOTH strip and detail for the homoglyph -- strip flags the look-alike
+   ## byte as "_", detail names its exact codepoint (<U+0430 CYRILLIC SMALL LETTER A>).
+   st_specs=(
+      'crafted strip crafted'
+      'random strip random'
+      'homoglyph strip homoglyph-strip'
+      'homoglyph detail homoglyph-detail'
+   )
+   for spec in "${st_specs[@]}"; do
+      read -r st_case st_mode st_suffix <<< "${spec}"
       env --unset=WAYLAND_DISPLAY "DISPLAY=${xwl_display}" QT_QPA_PLATFORM=xcb \
-         PYTHONPATH="${st_pkg}" python3 "${st_bin}" --new-instance --mode strip \
+         PYTHONPATH="${st_pkg}" python3 "${st_bin}" --new-instance --mode "${st_mode}" \
          -- bash --rcfile "${HOME}/.strc" -i >/dev/null 2>&1 &
       epid="$!"
       stwid="$(find_window || true)"
       if [ -n "${stwid}" ]; then
          sleep 2
-         inject "${stwid}" "$(cmd_for "${case}")"
+         inject "${stwid}" "$(cmd_for "${st_case}")"
          sleep 3
-         capture_window "${out}/secure-terminal.${case}.png" "${stwid}"
+         capture_window "${out}/secure-terminal.${st_suffix}.png" "${stwid}"
       else
-         printf 'warn secure-terminal.%s: window never appeared\n' "${case}"
+         printf 'warn secure-terminal.%s: window never appeared\n' "${st_suffix}"
       fi
       clear_windows
       kill "${epid}" 2>/dev/null || true

