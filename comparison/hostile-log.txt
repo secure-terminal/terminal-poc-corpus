@@ -1,0 +1,7 @@
+nginx: configuration reloaded
+apt: reading package lists... done
+]0;root@prod-db:~#[31;41m(0lqqqqqqqqqqqqqk
+x   ALERT    x
+mqqqqqqqqqqqqqj
+everything below stays corrupted: colour and charset are never reset,
+and the window title now reads root@prod-db:~#

@@ -19,6 +19,10 @@
 ##
 ## \033 = ESC, \007 = BEL. Deterministic: same bytes every run, so anyone can
 ## reproduce the comparison exactly.
+##
+## This script is the human-readable SOURCE for the committed hostile-log.txt
+## (the actual demo/capture artifact). After editing it, regenerate the file:
+##   ./hostile-script.sh > hostile-log.txt
 
 set -o errexit
 set -o nounset

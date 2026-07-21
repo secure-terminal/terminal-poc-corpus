@@ -14,7 +14,8 @@
 ##                     the returned prompt stays visible below the garble.
 ##   Case B (crafted): cat crafted.log            -- an OSC-0 title hijack plus a
 ##                     stuck colour and a DEC line-drawing charset shift, none reset
-##                     (crafted.log is hostile-script.sh's output).
+##                     (crafted.log is a copy of the committed hostile-log.txt, so
+##                     the shots use the exact bytes shipped in the repo).
 ## secure-terminal (its real GUI, from ST_REPO) is captured the same way.
 ## Output PNGs go to ./shots/.
 ##
@@ -64,7 +65,7 @@ export HOME="${runtime_dir}/home"
 export XDG_CONFIG_HOME="${runtime_dir}/config"
 mkdir --parents -- "${HOME}" "${XDG_CONFIG_HOME}/labwc"
 
-"${here}/hostile-script.sh" > "${HOME}/crafted.log"
+cp -- "${here}/hostile-log.txt" "${HOME}/crafted.log"
 cat > "${HOME}/.strc" <<'RC'
 PS1='user@host:~$ '
 RC
