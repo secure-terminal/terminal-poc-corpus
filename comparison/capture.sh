@@ -283,9 +283,19 @@ fi
 
 ## lxterminal is omitted: its single-instance startup maps no window headless.
 ## TERMINALS can be overridden to trial a subset (e.g. TERMINALS='xterm st').
+## A MISSING terminal is a HARD ERROR, not a silent skip -- an incomplete grid
+## would misrepresent the comparison. Install the emulator, or set ALLOW_SKIP=1 to
+## deliberately authorize skipping (it is then logged, never silent).
 TERMINALS="${TERMINALS:-xterm urxvt st konsole xfce4-terminal mate-terminal qterminal alacritty kitty}"
 for e in ${TERMINALS}; do
-   command -v "$e" >/dev/null 2>&1 || { printf 'skip %s (not installed)\n' "$e"; continue; }
+   if ! command -v "$e" >/dev/null 2>&1; then
+      if [ -n "${ALLOW_SKIP:-}" ]; then
+         printf 'SKIP %s (not installed; ALLOW_SKIP authorized)\n' "$e" >&2
+         continue
+      fi
+      printf 'ERROR: terminal %s is not installed. Install it, or set ALLOW_SKIP=1 to authorize skipping.\n' "$e" >&2
+      exit 1
+   fi
    shoot "$e" crafted   || true
    shoot "$e" random    || true
    shoot "$e" homoglyph || true
@@ -325,8 +335,11 @@ if [ -n "${ST_REPO:-}" ] && [ -f "${st_bin}" ]; then
       sleep 1.5
    done
    printf 'captured secure-terminal (real GUI)\n'
+elif [ -n "${ALLOW_SKIP:-}" ]; then
+   printf 'SKIP secure-terminal (ST_REPO not set/found; ALLOW_SKIP authorized)\n' >&2
 else
-   printf 'skip secure-terminal (set ST_REPO=/path/to/checkout to include it)\n'
+   printf 'ERROR: secure-terminal not found. Set ST_REPO=/path/to/checkout, or set ALLOW_SKIP=1 to authorize skipping.\n' >&2
+   exit 1
 fi
 
 printf 'done; shots in %s\n' "${out}"

