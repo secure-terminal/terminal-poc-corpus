@@ -19,10 +19,14 @@
 ##   Case C (homoglyph): cat homoglyph.txt          -- an install one-liner whose
 ##                     domain carries a Cyrillic look-alike (U+0430 for Latin a), so
 ##                     a traditional terminal shows a clean "example.com". secure-
-##                     terminal is shot in TWO modes: strip (look-alike -> "_") and
-##                     detail (<U+0430 CYRILLIC SMALL LETTER A>).
+##                     terminal is shot in TWO modes: box (look-alike -> a coloured
+##                     box) and detail (<U+0430 CYRILLIC SMALL LETTER A>).
 ## secure-terminal (its real GUI, from ST_REPO) is captured the same way.
 ## Output PNGs go to ./shots/.
+##
+## SIBLING generator (the OTHER shot set on the site): the paste/copy REVIEW-BAR
+## shots come from dist-ai 'secure-terminal-shots' (headless Qt grab), NOT this
+## script. See the site's 'shots/README.md'.
 ##
 ## The prompt is a fixed "user@host:~$" -- deliberately CONTRASTING with the
 ## root@prod-db the OSC-0 escape forces into the title bar: the prompt shows who
@@ -306,13 +310,15 @@ st_bin="${ST_REPO:-}/usr/bin/secure-terminal"
 st_pkg="${ST_REPO:-}/usr/lib/python3/dist-packages"
 if [ -n "${ST_REPO:-}" ] && [ -f "${st_bin}" ]; then
    ## Each entry is "<case> <mode> <output-suffix>". secure-terminal is captured in
-   ## the display mode that matters for each case: strip for the byte-stream cases,
-   ## and BOTH strip and detail for the homoglyph -- strip flags the look-alike
-   ## byte as "_", detail names its exact codepoint (<U+0430 CYRILLIC SMALL LETTER A>).
+   ## the display mode that matters for each case: box for the byte-stream cases,
+   ## and BOTH box and detail for the homoglyph -- box flags the look-alike byte as
+   ## a coloured box, detail names its exact codepoint (<U+0430 CYRILLIC SMALL
+   ## LETTER A>). The homoglyph-strip suffix is kept for the committed PNG /
+   ## Pages reference (the mode it captures is now box; the file name is a label).
    st_specs=(
-      'crafted strip crafted'
-      'random strip random'
-      'homoglyph strip homoglyph-strip'
+      'crafted box crafted'
+      'random box random'
+      'homoglyph box homoglyph-strip'
       'homoglyph detail homoglyph-detail'
    )
    for spec in "${st_specs[@]}"; do

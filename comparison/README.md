@@ -70,3 +70,6 @@ red-on-red is forced to a plainly readable form and can hide nothing.
   escape byte and no title marker.
 - The rest of this repo is the adversarial conformance corpus secure-terminal is
   tested against.
+- The site's OTHER screenshots - the in-window paste/copy **review bar** - are a
+  separate generator: dist-ai's `secure-terminal-shots` (headless Qt grab of the
+  real `ReviewBar`), not this `capture.sh`. See the site's `shots/README.md`.
