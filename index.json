@@ -1,6 +1,6 @@
 {
   "schema": "schema/poc.schema.json",
-  "count": 21,
+  "count": 22,
   "pocs": [
     {
       "id": "answerback-injection",
@@ -98,6 +98,21 @@
         "CVE-2021-42694"
       ],
       "author": "Nicholas Boucher, Ross Anderson",
+      "source_url": "https://trojansource.codes/",
+      "archive_url": "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source",
+      "date": "2021-11",
+      "severity": "spoof",
+      "mechanism": "homoglyph-substitution",
+      "modified": false
+    },
+    {
+      "id": "homoglyph-domain-install-2021",
+      "title": "Homoglyph domain in a copy-paste install command",
+      "class": "homoglyph",
+      "cve": [
+        "CVE-2021-42694"
+      ],
+      "author": "IDN homograph attack (Gabrilovich, Gontmakher 2002); homoglyph CVE: Boucher, Anderson",
       "source_url": "https://trojansource.codes/",
       "archive_url": "http://web.archive.org/web/20260417200200/https://github.com/nickboucher/trojan-source",
       "date": "2021-11",
