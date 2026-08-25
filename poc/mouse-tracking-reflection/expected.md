@@ -8,18 +8,23 @@ dedicated CVE).
 ## What the payload does
 
 Program output enables xterm mouse tracking (DECSET ?1003h any-event + ?1006h SGR
-extended). A terminal that implements it then writes an ESC[<...M/m mouse report
-onto the child's stdin for every mouse move / click / wheel -- output turning later
-user pointer motion into injected input.
+extended). Reporting a REAL user mouse event is a standard feature: xterm, konsole
+and secure-terminal all answer a program's tracking request with an ESC[<...M/m
+report when the user actually clicks, drags or scrolls. That is the user's own
+action reaching the program that asked for it, not injection.
+
+The vuln this class guards is OUTPUT fabricating input -- a write-back caused by the
+enable sequence ITSELF, with no user action.
 
 ## Verification (mouse-tracking-reflection)
 
-Real-effect oracle: enable tracking with the payload, then post REAL QMouseEvent
-press/move/release and a QWheelEvent over the offscreen widget and spy _write. A
-hit = any mouse-report write-back to the pty.
+Oracle: feed the DECSET mouse-enable payload to the offscreen widget and spy _write
+with NO pointer event posted. A hit = any write-back caused by output alone.
 
-secure-terminal has no mouse-report path at all, so no mouse action ever writes to
-the child.
+secure-terminal writes nothing from the enable sequence by itself, so output cannot
+inject. (Reporting a genuine user event is the intended feature, and Shift keeps an
+event local -- both are checked in secure-terminal's own test suite, not this
+cross-terminal detector.)
 
 ## Reference
 
