@@ -270,29 +270,20 @@ def _obs_paste_autoexec(payload):
 
 
 def _obs_mouse_report(payload):
-    """Enable mouse tracking with a DECSET payload, then post REAL mouse + wheel
-    events over the offscreen widget and return the bytes written back to the pty. A
-    terminal that implements xterm mouse reporting answers each event with a
-    '\\x1b[<...M/m' report on the child's stdin -- output-driven input, the same
-    "output becomes input" class as a DSR reflection. secure-terminal has no
-    mouse-report path at all, so no mouse action can write to the child."""
-    from PyQt6.QtGui import QMouseEvent, QWheelEvent              # noqa: E402
-    from PyQt6.QtCore import Qt, QEvent, QPointF, QPoint          # noqa: E402
+    """Feed a DECSET mouse-enable payload and return the bytes written back to the
+    pty by OUTPUT ALONE -- no pointer event is posted. Reporting a REAL user mouse
+    event is a standard feature (xterm/konsole and secure-terminal all answer a
+    program's tracking request with '\\x1b[<...M/m' when the user actually clicks or
+    scrolls); that is the user's own action, not injection. The vuln this class
+    guards is OUTPUT fabricating input -- a write-back caused by the enable sequence
+    ITSELF, with no user action. A correct terminal writes nothing until a genuine
+    event, so `sent` is empty. (Shift-locality and the real-event feature are
+    terminal-specific and checked in each terminal's own suite, not this cross-
+    terminal detector.)"""
     term = _new_term(enable_osc=True)
-    _feed_output(term, payload)            # the DECSET mouse-enable sequence
     sent = []
-    term._write = sent.append              # pylint: disable=protected-access
-    here, there = QPointF(10, 5), QPointF(12, 6)
-    left, none = Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton
-    nomod = Qt.KeyboardModifier.NoModifier
-    term.mousePressEvent(QMouseEvent(QEvent.Type.MouseButtonPress, here, here,
-                                     left, left, nomod))
-    term.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, there, there,
-                                    none, left, nomod))
-    term.mouseReleaseEvent(QMouseEvent(QEvent.Type.MouseButtonRelease, there, there,
-                                       left, none, nomod))
-    term.wheelEvent(QWheelEvent(there, there, QPoint(0, 0), QPoint(0, -120),
-                                none, nomod, Qt.ScrollPhase.NoScrollPhase, False))
+    term._write = sent.append              # pylint: disable=protected-access -- spy BEFORE feed
+    _feed_output(term, payload)            # the DECSET mouse-enable sequence, output only
     term.close()
     return sent
 
