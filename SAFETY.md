@@ -20,6 +20,18 @@ the sandbox harness, at run time, inside a disposable VM.
 **Never** decode a payload and pipe it to a real terminal. Never `printf` or `echo`
 the decoded bytes outside the harness.
 
+To decode a payload to raw bytes with stock tools -- byte-identical to the harness's
+own decoder -- use:
+
+```
+sed 's/#.*//' poc/<id>/payload.hex | tr -d '[:space:]' | xxd -r -p > x.payload
+```
+
+This is *only* the decode. Unlike `tools/reproduce.py`, it carries none of the
+sandbox gate and none of the per-class risk banner, so containment is entirely on
+you: decode and run inside the sandbox VM only (section 3), and never `cat` the
+result to a terminal you care about.
+
 ## 2. Injection payloads are CANARY-FORKED (payload-safe)
 
 A raw proof-of-concept that reaches code execution often does something destructive
@@ -61,10 +73,21 @@ to fire the canary. If the positive control is not observed, the harness is brok
 and the run **fails loud** -- no "not vulnerable" verdict is trusted. `secure-terminal
 --test-canary` is one such positive control.
 
-## 5. Scope: public disclosures only
+## 5. Scope: public only (disclosed or documented)
 
-Only publicly-disclosed issues (CVEs, published write-ups) are collected, each with
-a source link, a web-archive link, and author attribution. No 0-days.
+Every entry is public and traceable to a primary source; there are no 0-days. Two
+kinds are collected:
+
+- **Publicly-disclosed issues** -- a specific CVE or published write-up. These carry
+  a `source_url` to the disclosure, a `web-archive` snapshot, and author attribution.
+- **Project-authored demonstrations of documented classes** -- a benign PoC for a
+  well-known, specified terminal-control behaviour (DEC special graphics, alt-screen,
+  OSC 52, mouse reporting, media copy, bracketed-paste submit, ...) that has no single
+  CVE. These carry a `source_url` to the defining specification (e.g. the xterm
+  control-sequences reference) plus a snapshot, and are authored by the project.
+
+Either way the payload itself is canary-forked (section 2) or a pure display/DoS
+trigger (also section 2), never a live attacker command.
 
 ## In one line
 

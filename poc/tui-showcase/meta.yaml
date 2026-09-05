@@ -8,7 +8,7 @@ affected:
     tested: false
 author: "secure-terminal corpus composite (Boucher & Anderson 2021 bidi/homoglyph; CyberArk / Eviatar Gerzi 2021 title+charset; HD Moore 2003 escape classes)"
 source_url: "https://secure-terminal.github.io/comparison/"
-archive_url: "TODO"
+archive_url: "http://web.archive.org/web/20260905053007/https://secure-terminal.github.io/comparison/"
 date: "2026-08"
 severity: spoof
 mechanism: composite-display-only-board-osc0-charset-altscreen-osc8-bidi-homoglyph-zerowidth-combining-fullwidth

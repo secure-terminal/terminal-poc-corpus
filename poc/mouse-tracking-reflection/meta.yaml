@@ -6,9 +6,9 @@ cve: []
 affected:
   - product: "xterm-family terminals implementing mouse reporting (1000/1002/1003 + 1006)"
     tested: false
-author: "(xterm mouse-tracking reflection class; publicly documented)"
-source_url: "https://secure-terminal.github.io"
-archive_url: "TODO"
+author: "(project-authored demonstration; class documented in xterm ctlseqs)"
+source_url: "https://invisible-island.net/xterm/ctlseqs/ctlseqs.html"
+archive_url: "http://web.archive.org/web/20260826142350/https://invisible-island.net/xterm/ctlseqs/ctlseqs.html"
 date: "2020"
 severity: injection
 mechanism: decset-mouse-report

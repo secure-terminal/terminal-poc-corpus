@@ -10,7 +10,7 @@ affected:
     tested: false
 author: "(rxvt-unicode DSR/colour-query newline)"
 source_url: "https://nvd.nist.gov/vuln/detail/CVE-2021-33477"
-archive_url: "TODO"
+archive_url: "http://web.archive.org/web/20260312234903/https://nvd.nist.gov/vuln/detail/CVE-2021-33477"
 date: "2021-05"
 severity: injection
 mechanism: colour-query-reflection

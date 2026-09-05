@@ -54,6 +54,14 @@ python3 tools/validate.py
 python3 tools/build_index.py > index.json
 ```
 
+Decode a single payload to raw bytes with stock tools (byte-identical to the
+harness decoder, but WITHOUT its sandbox gate or risk banner -- containment is on
+you, see `SAFETY.md`):
+
+```
+sed 's/#.*//' poc/<id>/payload.hex | tr -d '[:space:]' | xxd -r -p > x.payload
+```
+
 Run the corpus against a terminal **inside the sandbox VM only**:
 
 ```

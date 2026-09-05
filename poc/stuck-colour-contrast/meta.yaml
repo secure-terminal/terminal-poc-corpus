@@ -6,9 +6,9 @@ cve: []
 affected:
   - product: "terminals honouring SGR colour with no automatic reset"
     tested: false
-author: "(stuck-colour contrast; documented class)"
-source_url: "https://secure-terminal.github.io"
-archive_url: "TODO"
+author: "(project-authored demonstration; class documented in xterm ctlseqs)"
+source_url: "https://invisible-island.net/xterm/ctlseqs/ctlseqs.html"
+archive_url: "http://web.archive.org/web/20260826142350/https://invisible-island.net/xterm/ctlseqs/ctlseqs.html"
 date: "2021"
 severity: spoof
 mechanism: stuck-sgr-colour
