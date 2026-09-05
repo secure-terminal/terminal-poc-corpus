@@ -26,6 +26,7 @@ index.json                    generated flat manifest of all PoCs (Exploit-DB st
 poc/<id>/
     meta.yaml                 attribution + classification (validated by the schema)
     payload.hex               hex-encoded, canary-forked payload (never raw bytes)
+    payload.b64               generated base64 mirror of payload.hex (for base64 -d)
     expected.md               safe behaviour + the canary to check
 harness/run.py                sandbox-only runner: decode -> feed -> check canary
 harness/adversarial.py        drive secure-terminal directly + assert it neutralizes
@@ -34,8 +35,10 @@ harness/conformance.py        reference-parser self-tests (pyte, libvterm) + a
                               security invariant over the whole VT/xterm spec surface
 conformance/manifest.json     pinned, reviewed external conformance/reference suites
 conformance/acquire.sh        safe acquisition (apt-first, else pinned commit SHA)
-tools/validate.py             validate every meta.yaml against the schema
+tools/validate.py             validate every meta.yaml against the schema; also fails
+                              if any payload.b64 drifts from its payload.hex
 tools/build_index.py          regenerate index.json from poc/*/meta.yaml
+tools/build_payloads.py       regenerate every payload.b64 from its payload.hex
 ```
 
 ## A PoC record (`meta.yaml`)
@@ -59,7 +62,8 @@ harness decoder, but WITHOUT its sandbox gate or risk banner -- containment is o
 you, see `SAFETY.md`):
 
 ```
-sed 's/#.*//' poc/<id>/payload.hex | tr -d '[:space:]' | xxd -r -p > x.payload
+base64 -d poc/<id>/payload.b64 > x.payload                                 # simplest
+sed 's/#.*//' poc/<id>/payload.hex | tr -d '[:space:]' | xxd -r -p > x.payload   # from hex
 ```
 
 Run the corpus against a terminal **inside the sandbox VM only**:

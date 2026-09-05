@@ -9,6 +9,7 @@ payload. Exit 0 if all valid, 1 otherwise.
 
 Needs python3-yaml and python3-jsonschema (Debian packages)."""
 
+import base64
 import binascii
 import json
 import os
@@ -24,21 +25,43 @@ except ImportError as exc:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _payload_is_hex(path):
-    """A payload.hex must contain ONLY hex (whitespace + '#' comments ignored), so
-    the repo stays read-safe -- no raw escape bytes ever land in a payload file."""
+def _decode_hex(path):
+    """Decode a payload.hex to raw bytes (whitespace + '#' comments ignored)."""
     body = []
     with open(path, encoding='ascii') as handle:
         for line in handle:
             body.append(''.join(line.split('#', 1)[0].split()))
-    joined = ''.join(body)
-    if not joined:
-        return False
+    return binascii.unhexlify(''.join(body))
+
+
+def _payload_is_hex(path):
+    """A payload.hex must contain ONLY hex (whitespace + '#' comments ignored), so
+    the repo stays read-safe -- no raw escape bytes ever land in a payload file."""
     try:
-        binascii.unhexlify(joined)
-        return True
+        return bool(_decode_hex(path))
     except (binascii.Error, ValueError):
         return False
+
+
+def _payload_b64_matches_hex(poc_dir):
+    """payload.b64 is a GENERATED base64 mirror of payload.hex (see
+    tools/build_payloads.py). It MUST exist and decode to the exact same bytes, or the
+    website/user b64 path and the harness hex path would silently test different bytes.
+    A stale or missing mirror fails here -- run tools/build_payloads.py to regenerate."""
+    b64_path = os.path.join(poc_dir, 'payload.b64')
+    if not os.path.isfile(b64_path):
+        return ['missing payload.b64 (run tools/build_payloads.py)']
+    with open(b64_path, 'rb') as handle:
+        data = handle.read()
+    # Drop line-wrap whitespace, then validate=True: any surviving byte is a raw/garbage
+    # byte (not base64), so this also enforces read-safety -- no control byte in the file.
+    try:
+        raw_b64 = base64.b64decode(b''.join(data.split()), validate=True)
+    except (binascii.Error, ValueError):
+        return ['payload.b64 is not valid base64 (read-safety violation)']
+    if raw_b64 != _decode_hex(os.path.join(poc_dir, 'payload.hex')):
+        return ['payload.b64 out of sync with payload.hex (run tools/build_payloads.py)']
+    return []
 
 
 # Command fragments a canary-forked payload must NEVER contain: a fired PoC may only
@@ -60,12 +83,8 @@ def _payload_safety(payload_path, meta):
     harmful command fragment and DO reference the canary convention -- a first-line
     lint that backs the per-PoC human / ai-review sanitization gate."""
     problems = []
-    body = []
-    with open(payload_path, encoding='ascii') as handle:
-        for line in handle:
-            body.append(''.join(line.split('#', 1)[0].split()))
     try:
-        raw = binascii.unhexlify(''.join(body))
+        raw = _decode_hex(payload_path)
     except (binascii.Error, ValueError):
         return ['payload.hex is not decodable for the safety check']
     low = raw.lower()
@@ -115,6 +134,7 @@ def main():
                 problems.append('payload.hex is not valid hex (read-safety violation)')
             else:
                 problems.extend(_payload_safety(payload, meta))
+                problems.extend(_payload_b64_matches_hex(poc_dir))
         if not os.path.isfile(os.path.join(poc_dir, 'expected.md')):
             problems.append('missing expected.md')
         if problems:
