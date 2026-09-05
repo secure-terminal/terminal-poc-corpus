@@ -12,19 +12,28 @@ something. If we stored those bytes raw, then `cat`, `grep`, `git diff`, or a
 GitHub file view would *feed the attack to your terminal* -- the repository itself
 would be the weapon.
 
-So every payload is stored **hex-encoded** in a `payload.hex` file (whitespace and
-`#` comments ignored). Nothing in this repo, when displayed, emits an escape
-sequence or control byte. The only place a payload is ever decoded to live bytes is
-the sandbox harness, at run time, inside a disposable VM.
+So every payload is stored **encoded** in two sibling files, neither of which emits
+an escape sequence or control byte when displayed:
+
+- `payload.hex` -- the source of truth: hex (whitespace and `#` comments ignored),
+  human-inspectable, and what the harness decodes.
+- `payload.b64` -- a GENERATED base64 mirror of the same bytes, so a payload decodes
+  with a single stock command (see below). It is derived from `payload.hex` by
+  `tools/build_payloads.py`; `tools/validate.py` FAILS if the two ever disagree, so
+  they cannot silently drift.
+
+The only place a payload is decoded to live bytes is the sandbox harness, at run
+time, inside a disposable VM.
 
 **Never** decode a payload and pipe it to a real terminal. Never `printf` or `echo`
 the decoded bytes outside the harness.
 
 To decode a payload to raw bytes with stock tools -- byte-identical to the harness's
-own decoder -- use:
+own decoder -- use either:
 
 ```
-sed 's/#.*//' poc/<id>/payload.hex | tr -d '[:space:]' | xxd -r -p > x.payload
+base64 -d poc/<id>/payload.b64 > x.payload                                 # simplest
+sed 's/#.*//' poc/<id>/payload.hex | tr -d '[:space:]' | xxd -r -p > x.payload   # from hex
 ```
 
 This is *only* the decode. Unlike `tools/reproduce.py`, it carries none of the
