@@ -50,7 +50,8 @@ worked example in `poc/title-report-echoback-2003/`.
 
 ## Using it
 
-Regenerate/validate locally (these only read text, no payloads are decoded):
+Regenerate/validate locally (validate.py decodes payloads to bytes in memory for its
+safety and drift checks, but no payload is ever rendered to a terminal or executed):
 
 ```
 python3 tools/validate.py

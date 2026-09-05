@@ -13,6 +13,7 @@ import base64
 import binascii
 import json
 import os
+import re
 import sys
 
 try:
@@ -53,27 +54,39 @@ def _payload_b64_matches_hex(poc_dir):
         return ['missing payload.b64 (run tools/build_payloads.py)']
     with open(b64_path, 'rb') as handle:
         data = handle.read()
-    # Drop line-wrap whitespace, then validate=True: any surviving byte is a raw/garbage
-    # byte (not base64), so this also enforces read-safety -- no control byte in the file.
-    try:
-        raw_b64 = base64.b64decode(b''.join(data.split()), validate=True)
-    except (binascii.Error, ValueError):
-        return ['payload.b64 is not valid base64 (read-safety violation)']
-    if raw_b64 != _decode_hex(os.path.join(poc_dir, 'payload.hex')):
+    # Byte-exact against what tools/build_payloads.py writes: base64.encodebytes output
+    # (base64 alphabet + '\n' line wrapping, nothing else). Comparing the whole file --
+    # not a whitespace-stripped decode -- enforces sync AND read-safety in one step: any
+    # stray byte (a C0 control that `bytes.split()` would drop but GNU `base64 -d` chokes
+    # on, or garbage) makes the file differ, so it cannot pass. This keeps the documented
+    # `base64 -d payload.b64` byte-identical to the harness hex path.
+    expected = base64.encodebytes(_decode_hex(os.path.join(poc_dir, 'payload.hex')))
+    if data != expected:
+        if not re.fullmatch(rb'[A-Za-z0-9+/=\n]*', data):
+            return ['payload.b64 has bytes outside base64 + newline '
+                    '(read-safety violation; run tools/build_payloads.py)']
         return ['payload.b64 out of sync with payload.hex (run tools/build_payloads.py)']
     return []
 
 
-# Command fragments a canary-forked payload must NEVER contain: a fired PoC may only
-# perform the safe canary action (write the marker), never anything that could harm a
-# tester. A hit here means the PoC was not properly sanitized (see ../SAFETY.md).
-_HARMFUL = (
-    b'rm ', b'rm\t', b'rmdir', b'mkfs', b'dd if=', b'dd of=', b' of=/dev',
-    b'curl', b'wget', b'ncat', b'nc -', b'telnet', b'/dev/sd', b'/dev/nvme',
-    b':(){', b'chmod +s', b'chmod u+s', b'chown ', b'shred', b'mkswap',
-    b'| sh', b'|sh', b'| bash', b'|bash', b'eval ', b'os.system', b'subprocess',
-    b'>/etc/', b'> /etc/', b'sudo ', b'/etc/passwd', b'/etc/shadow', b'crontab',
-    b'systemctl', b'pkill', b'reboot', b'shutdown', b'poweroff',
+# A fired canary-forked PoC may ONLY perform the safe canary action (write the marker),
+# never anything that could harm a tester. A hit here means the PoC was not sanitized
+# (see ../SAFETY.md). This is a first-line lint (a denylist can never be complete; the
+# real gate is the per-PoC human / ai-review), so it errs toward catching known-harmful.
+#
+# Command NAMES are matched as whole words so ordinary text ("confirm", "medieval",
+# "perform", "sync") does not false-trip the short ones; PATHS/OPERATORS are substrings.
+_HARMFUL_CMD = (
+    b'rm', b'rmdir', b'dd', b'mkfs', b'mkswap', b'nc', b'ncat', b'curl', b'wget',
+    b'telnet', b'shred', b'chown', b'chmod', b'eval', b'crontab', b'systemctl',
+    b'pkill', b'reboot', b'shutdown', b'poweroff', b'sudo', b'subprocess',
+)
+_HARMFUL_CMD_RE = re.compile(
+    rb'\b(?:' + b'|'.join(re.escape(c) for c in _HARMFUL_CMD) + rb')\b')
+_HARMFUL_SUB = (
+    b'dd if=', b'dd of=', b' of=/dev', b'/dev/sd', b'/dev/nvme', b'/dev/tcp',
+    b'/dev/udp', b':(){', b'| sh', b'|sh', b'| bash', b'|bash', b'os.system',
+    b'>/etc/', b'> /etc/', b'/etc/passwd', b'/etc/shadow',
 )
 
 
@@ -88,7 +101,10 @@ def _payload_safety(payload_path, meta):
     except (binascii.Error, ValueError):
         return ['payload.hex is not decodable for the safety check']
     low = raw.lower()
-    for frag in _HARMFUL:
+    for hit in sorted(set(_HARMFUL_CMD_RE.findall(low))):
+        problems.append('payload carries a HARMFUL command %r (not sanitized)'
+                        % hit.decode('ascii'))
+    for frag in _HARMFUL_SUB:
         if frag in low:
             problems.append('payload carries a HARMFUL fragment %r (not sanitized)'
                             % frag.decode('ascii'))
