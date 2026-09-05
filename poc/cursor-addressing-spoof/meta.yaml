@@ -6,9 +6,9 @@ cve: []
 affected:
   - product: "terminals honouring cursor addressing in line mode"
     tested: false
-author: "(cursor-overwrite deception; documented class)"
-source_url: "https://secure-terminal.github.io"
-archive_url: "TODO"
+author: "(project-authored demonstration; class documented in xterm ctlseqs)"
+source_url: "https://invisible-island.net/xterm/ctlseqs/ctlseqs.html"
+archive_url: "http://web.archive.org/web/20260826142350/https://invisible-island.net/xterm/ctlseqs/ctlseqs.html"
 date: "2020"
 severity: spoof
 mechanism: cursor-up-erase-overwrite
