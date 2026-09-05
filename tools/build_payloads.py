@@ -34,16 +34,28 @@ def _decode_hex(path):
 def main():
     poc_root = os.path.join(ROOT, 'poc')
     written = 0
+    errors = 0
     for poc_id in sorted(os.listdir(poc_root)):
         hex_path = os.path.join(poc_root, poc_id, 'payload.hex')
         if not os.path.isfile(hex_path):
             continue
-        encoded = base64.encodebytes(_decode_hex(hex_path))  # 76-col wrapped
+        try:
+            encoded = base64.encodebytes(_decode_hex(hex_path))  # 76-col wrapped
+        except (binascii.Error, ValueError, UnicodeDecodeError) as exc:
+            # Name the offending PoC instead of a bare traceback, and keep going so one
+            # bad contribution does not leave every later payload.b64 stale.
+            sys.stderr.write('build_payloads: %s: cannot decode payload.hex: %s\n'
+                             % (poc_id, exc))
+            errors += 1
+            continue
         with open(os.path.join(poc_root, poc_id, 'payload.b64'), 'wb') as out:
             out.write(encoded)
         written += 1
     print('wrote %d payload.b64 file(s)' % written)
-    return 0
+    if errors:
+        sys.stderr.write('build_payloads: %d payload.hex file(s) failed to decode\n'
+                         % errors)
+    return 1 if errors else 0
 
 
 if __name__ == '__main__':
